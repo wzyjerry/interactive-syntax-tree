@@ -20,96 +20,85 @@ export default {
     },
     methods: {
         initTree() {
+            let width = 600,
+                height = 400,
+                svg = d3.select('.main-svg')
+                        .append('svg')
+                        .attr('width', width)
+                        .attr('height', height),
+                g = svg.append('g')
+                    .attr('transform', 'translate(150, 0)');
+                    
+            let tree = d3.tree()
+                    .size([height, width - 300]);
+
             let venue = d3.hierarchy(this.venue_data)
                         .sum(function(d) {
                             return d.value ? 1 : 0
                         });
-            let width = 960;
-            let height = 2000;
-            
-            let svg = d3.select('.main-svg')
-                        .append('svg')
-                        .attr('width', width)
-                        .attr('height', height);
-            let tree = d3.tree()
-                    .nodeSize([40, 40])
-                    .separation(function(a, b) {
-                        return (a.parent === b.parent ? 1 : 2);
-                    });
-            let treeData = tree(venue);
-            let nodes = treeData.descendants();
-            let links = treeData.links();
-            const bezier_curve_generator = d3.linkHorizontal()
-                                            .x(function(d) { return d.y; })
-                                            .y(function(d) { return d.x; });
-            var g = svg.append("g")
-            .attr('transform', 'translate(200,300)');
-            g.append('g')
-            .selectAll('path')
-            .data(links)
-            .enter()
-            .append('path')
-            .attr('d', function(d) {
-                let start = {
-                    x: d.source.x,
-                    y: d.source.y
-                };
-                let end = {
-                    x: d.target.x,
-                    y:d.target.y
-                };
-                return bezier_curve_generator({
-                    source: start,
-                    target: end
-                });
-            })
-            .attr('fill', 'none')
-            .attr('stroke', 'black')
-            .attr('stroke-width', 1);
-
-            let gs = g.append("g")
-                    .selectAll("g")
-                    .data(nodes)
+            let link = g.selectAll('.link')
+                    .data(tree(venue).links())
                     .enter()
-                    .append("g")
-                    .attr("transform",function(d){
-                        var cx = d.x;
-                        var cy= d.y;
-                        return "translate("+cy+","+cx+")";
+                    .append('path')
+                    .attr('class', 'link')
+                    .attr('d', d3.linkHorizontal()
+                        .x(function(d) { return d.y; })
+                        .y(function(d) { return d.x; }));
+
+            let node = g.selectAll('.node')
+                    .data(venue.descendants())
+                    .enter()
+                    .append('g')
+                    .attr('class', function(d) {
+                        return d.data.type;
+                    })
+                    .attr('transform', function(d) {
+                        return 'translate(' + d.y + ', ' + d.x + ")";
                     });
-                //绘制节点
-                gs.append("circle")
-                    .attr("r",6)
-                    .attr("fill", function(d) {
-                        switch (d.data.type) {
-                            case 'pickone':
-                                return node_pickone;
-                            case 'order':
-                                return node_order;
-                            case 'exchangeable':
-                                return node_exchangeable;
-                            case 'content':
-                                return node_content;
-                        }
-                    })
-                    .attr("stroke","blue")
-                    .attr("stroke-width",1);
-    		
-                //文字
-                gs.append("text")
-                    .attr("x",function(d){
-                        return d.children?-130:8;
-                    })
-                    .attr("y",-5)
-                    .attr("dy",10)
-                    .text(function(d){
-                        return d.data.name;
-                    })
-                }
+                    
+            node.append('circle')
+                .attr('r', 2.5)
+            
+            node.append('text')
+                .attr('dy', 3)
+                .attr('x', function(d) {
+                    return d.children ? -8 : 8;
+                })
+                .style('text-anchor', function(d) {
+                    return d.children ? 'end' : 'start';
+                })
+                .text(function(d) {
+                    return d.data.name ? d.data.name : d.data.type;
+                });
+        }
     }
 };
 
 </script>
 
-<style scoped>
+<style>
+
+.node circle {
+  fill: #999;
+}
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.node--internal circle {
+  fill: #555;
+}
+
+.node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #555;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+
 </style>
