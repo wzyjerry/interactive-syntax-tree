@@ -6,12 +6,12 @@
 
 <script>
 // @ is an alias to /src
-import InteractiveSyntaxTree from "@/components/InteractiveSyntaxTree.vue";
+import InteractiveSyntaxTree from '@/components/InteractiveSyntaxTree.vue';
 
 export default {
-  name: "home",
-  components: {
-    InteractiveSyntaxTree
-  }
+    name: 'Home',
+    components: {
+        InteractiveSyntaxTree: InteractiveSyntaxTree
+    }
 };
 </script>
