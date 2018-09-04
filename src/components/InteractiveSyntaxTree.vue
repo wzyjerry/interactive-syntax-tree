@@ -8,7 +8,6 @@ import * as $ from 'jquery';
 
 /* TODO: 数据,之后由界面导入 */
 const venue_data = require('@/assets/data/venue.json');
-
 export default {
     name: 'InteractiveSyntaxTree',
     data: function() {
@@ -20,7 +19,7 @@ export default {
             // this.drag 节点拖拽事件
             drag: null,
             // 节点拖拽状态
-            dragStarted: false,
+            dragStarted: null,
             // 拖拽节点集合，包含节点的先根序列
             dragNodes: null,
 
@@ -28,20 +27,24 @@ export default {
             // 镜头移动边界
             panBoundary: 50,
             // 镜头移动速度
-            panSpeed: 120,
+            panSpeed: 10.0,
+            // 镜头移动计时器设置
+            panTimer: false,
+
+            /* 画布组件 */
+            // 画布
+            svg: null,
+            // 交互树组件集合
+            svgGroup: null,
+            // 交互树偏移
+            transform: d3.zoomIdentity,
 
             zoom: null,
             index: 0,
             duration: 750,
             nodes: [],
             links: [],
-            treeData: null,
-            margin: {
-                top: 20,
-                right: 150,
-                bottom: 20,
-                left: 150
-            }
+            treeData: null
         };
     },
     computed: {
@@ -50,56 +53,98 @@ export default {
         }
     },
     mounted: function() {
-        this.width = 960 - this.margin.right - this.margin.left;
-        this.height = $(document).height() - this.margin.top - this.margin.bottom - 20;
+        const vue = this;
+        this.width = 800;
+        this.height = 400;
         this.svg = d3.select('svg')
-            .attr('width', this.width + this.margin.right + this.margin.left)
-            .attr('height', this.height + this.margin.top + this.margin.bottom);
+            .attr('width', this.width)
+            .attr('height', this.height);
+
         this.drag = d3.drag()
             // 标记拖拽开始
-            .on('start', d => {
-                if (d === this.root) {
+            .on('start', function(d) {
+                if (d === vue.root) {
                     return;
                 }
-                this.dragStarted = true;
-                this.dragNodes = d.descendants();
+                vue.dragStarted = true;
+                vue.dragNodes = d.descendants();
                 // 阻止事件传播 https://stackoverflow.com/questions/10095979/d3-click-and-drag-event-nesting
                 d3.event.sourceEvent.stopPropagation();
             })
             // 拖拽中，处理镜头移动
-            .on('drag', (d) => {
-                if (d === this.root) {
+            .on('drag', function(d) {
+                if (d === vue.root) {
                     return;
                 }
-                if (this.dragStarted) {
-                    const domNode = d3.event.target;
-                    this.initDrag(d, domNode);
+                if (vue.dragStarted) {
+                    vue.initDrag(d, this);
                 }
                 // 获取相对画布的鼠标坐标
                 const relCoords = d3.mouse($('svg').get(0));
+                if (relCoords[0] < vue.panBoundary) {
+                    vue.pan(this, 'left');
+                }
+                else if (relCoords[0] > $('svg').width() - vue.panBoundary) {
+                    vue.pan(this, 'right');
+                }
+                else if (relCoords[1] < vue.panBoundary) {
+                    vue.pan(this, 'up');
+                }
+                else if (relCoords[1] > $('svg').height() - vue.panBoundary) {
+                    vue.pan(this, 'down');
+                }
+                else {
+                    clearTimeout(vue.panTimer);
+                }
+                d.x0 += d3.event.dy;
+                d.y0 += d3.event.dx;
+                const node = d3.select(this);
+                node.attr('transform', 'translate(' + d.y0 + ', ' + d.x0 + ')');
+            })
+            .on('end', function() {
+                clearTimeout(vue.panTimer);
             });
         this.zoom = d3.zoom()
             .scaleExtent([1 / 2, 8])
             .on('zoom', this.zoomed);
-        const transform = d3.zoomIdentity.translate(this.margin.left, this.margin.top).scale(1);
-        this.svg.transition().duration(this.duration)
-            .call(this.zoom.transform, transform);
         this.svg.call(this.zoom);
         this.svg = this.svg.append('g');
+        this.svgGroup = this.svg;
+        this.svgGroup.call(this.zoom.transform, this.transform);
         this.root = this.initDev();
         this.update(this.root);
     },
     methods: {
         // 镜头移动：当拖动元素到达边界区时
-        pan: (domNode, direction) => {
-            let translateCoords = d3.transform()
-            if (direction === 'left'
-                || direction === 'right') {
-                    // TODO
-                }
+        pan: function(domNode, direction) {
+            clearTimeout(this.panTimer);
+            const panSpeed = this.panSpeed * this.transform.k;
+            const vue = this;
+            switch (direction) {
+                case 'left':
+                    this.transform.x += panSpeed;
+                    break;
+                case 'right':
+                    this.transform.x -= panSpeed;
+                    break;
+                case 'up':
+                    this.transform.y += panSpeed;
+                    break;
+                case 'down':
+                    this.transform.y -= panSpeed;
+                    break;
+                default:
+                    break;
+            }
+            this.svgGroup.call(this.zoom.transform, this.transform);
+            this.panTimer = setTimeout(function() {
+                vue.pan(domNode, direction);
+            }, 50);
         },
         initDrag: function(d, domNode) {
 
+            // this.svg.attr('transform', d3.event.transform);
+            this.dragStarted = null;
         },
         initDev: function() {
             const rootData = {
@@ -123,6 +168,7 @@ export default {
                 }
                 this.$nextTick(() => {
                     this.update(d);
+                    this.centerNode(d);
                 });
             }
         },
@@ -244,8 +290,12 @@ export default {
                 d.y0 = d.y;
             });
         },
+        centerNode: function(node) {
+            this.zoom.translateTo(this.svgGroup.transition().duration(this.duration), node.y0, node.x0);
+        },
         zoomed: function() {
-            this.svg.attr('transform', d3.event.transform);
+            this.transform = d3.event.transform;
+            this.svg.attr('transform', this.transform);
         }
     }
 };

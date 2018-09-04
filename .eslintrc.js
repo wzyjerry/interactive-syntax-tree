@@ -8,6 +8,6 @@ module.exports = {
         'plugin:vue/recommended'
     ],
     'rules': {
-    // 自定义规则
+        'no-invalid-this': 0
     }
 };
