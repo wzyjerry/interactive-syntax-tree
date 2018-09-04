@@ -26,20 +26,16 @@ export default {
             /* 镜头移动 */
             // 镜头移动边界
             panBoundary: 50,
-            // 镜头移动速度
-            panSpeed: 10.0,
             // 镜头移动计时器设置
-            panTimer: false,
+            panTimer: null,
 
             /* 画布组件 */
-            // 画布
-            svg: null,
+            // SVG画布
+            baseSvg: null,
             // 交互树组件集合
             svgGroup: null,
-            // 交互树偏移
-            transform: d3.zoomIdentity,
 
-            zoom: null,
+            zoomListener: null,
             index: 0,
             duration: 750,
             nodes: [],
@@ -56,9 +52,13 @@ export default {
         const vue = this;
         this.width = 800;
         this.height = 400;
-        this.svg = d3.select('svg')
+        this.zoomListener = d3.zoom()
+            .scaleExtent([1 / 2, 8])
+            .on('zoom', this.zoom);
+        this.baseSvg = d3.select('svg')
             .attr('width', this.width)
-            .attr('height', this.height);
+            .attr('height', this.height)
+            .call(this.zoomListener);
 
         this.drag = d3.drag()
             // 标记拖拽开始
@@ -81,20 +81,30 @@ export default {
                 }
                 // 获取相对画布的鼠标坐标
                 const relCoords = d3.mouse($('svg').get(0));
+                let direction = null;
+                let panSpeed = null;
                 if (relCoords[0] < vue.panBoundary) {
-                    vue.pan(this, 'left');
+                    direction = 'left';
+                    panSpeed = vue.panBoundary - relCoords[0];
                 }
                 else if (relCoords[0] > $('svg').width() - vue.panBoundary) {
-                    vue.pan(this, 'right');
+                    direction = 'right';
+                    panSpeed = relCoords[0] - $('svg').width() + vue.panBoundary
                 }
                 else if (relCoords[1] < vue.panBoundary) {
-                    vue.pan(this, 'up');
+                    direction = 'up';
+                    panSpeed = vue.panBoundary - relCoords[1];
                 }
                 else if (relCoords[1] > $('svg').height() - vue.panBoundary) {
-                    vue.pan(this, 'down');
+                    direction = 'down';
+                    panSpeed = relCoords[1] - $('svg').height() + vue.panBoundary
                 }
                 else {
                     clearTimeout(vue.panTimer);
+                }
+                if (direction !== null) {
+                    panSpeed = d3.min([1000, panSpeed]);
+                    vue.pan(direction, panSpeed / 10);
                 }
                 d.x0 += d3.event.dy;
                 d.y0 += d3.event.dx;
@@ -104,41 +114,37 @@ export default {
             .on('end', function() {
                 clearTimeout(vue.panTimer);
             });
-        this.zoom = d3.zoom()
-            .scaleExtent([1 / 2, 8])
-            .on('zoom', this.zoomed);
-        this.svg.call(this.zoom);
-        this.svg = this.svg.append('g');
-        this.svgGroup = this.svg;
-        this.svgGroup.call(this.zoom.transform, this.transform);
+        this.svgGroup = this.baseSvg.append('g');
         this.root = this.initDev();
         this.update(this.root);
     },
     methods: {
         // 镜头移动：当拖动元素到达边界区时
-        pan: function(domNode, direction) {
+        pan: function(direction, panSpeed) {
             clearTimeout(this.panTimer);
-            const panSpeed = this.panSpeed * this.transform.k;
+            let transform = d3.zoomTransform(this.svgGroup);
             const vue = this;
+            let dx = 0,
+                dy = 0;
             switch (direction) {
                 case 'left':
-                    this.transform.x += panSpeed;
+                    dx = +panSpeed;
                     break;
                 case 'right':
-                    this.transform.x -= panSpeed;
+                    dx = -panSpeed;
                     break;
                 case 'up':
-                    this.transform.y += panSpeed;
+                    dy = +panSpeed;
                     break;
                 case 'down':
-                    this.transform.y -= panSpeed;
+                    dy = -panSpeed;
                     break;
                 default:
                     break;
             }
-            this.svgGroup.call(this.zoom.transform, this.transform);
+            this.zoomListener.translateBy(this.baseSvg.transition().duration(50), dx, dy);
             this.panTimer = setTimeout(function() {
-                vue.pan(domNode, direction);
+                vue.pan(direction, panSpeed);
             }, 50);
         },
         initDrag: function(d, domNode) {
@@ -188,7 +194,7 @@ export default {
             this.nodes.forEach(d => {
                 d.y = d.depth * 180;
             });
-            const svg = this.svg;
+            const svg = this.svgGroup;
 
             const node = svg.selectAll('g.node')
                 .data(this.nodes, d => {
@@ -251,7 +257,7 @@ export default {
             nodeExit.select('text')
                 .style('fill-opacity', 1e-6);
 
-            const link = this.svg.selectAll('path.link')
+            const link = svg.selectAll('path.link')
                 .data(this.links, d => {
                     return d.id;
                 });
@@ -291,11 +297,10 @@ export default {
             });
         },
         centerNode: function(node) {
-            this.zoom.translateTo(this.svgGroup.transition().duration(this.duration), node.y0, node.x0);
+            this.zoomListener.translateTo(this.baseSvg.transition().duration(this.duration), node.y0, node.x0);
         },
-        zoomed: function() {
-            this.transform = d3.event.transform;
-            this.svg.attr('transform', this.transform);
+        zoom: function() {
+            this.svgGroup.attr('transform', d3.event.transform);
         }
     }
 };
