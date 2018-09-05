@@ -15,12 +15,15 @@
   },
   "devDependencies": {
     "@types/d3": "^5.0.0",
+    "@types/stylus": "^0.48.30",
     "@vue/cli-plugin-eslint": "^3.0.1",
     "@vue/cli-service": "^3.0.1",
     "@vue/eslint-config-prettier": "^3.0.1",
     "eslint": "^5.4.0",
     "eslint-config-nzcl": "^1.0.3",
     "eslint-plugin-vue": "^4.7.1",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.2",
     "vue-template-compiler": "^2.5.17"
   }
 }

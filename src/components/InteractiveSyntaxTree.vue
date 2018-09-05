@@ -12,16 +12,25 @@ export default {
     name: 'InteractiveSyntaxTree',
     data: function() {
         return {
-            /* 超根节点，用于维护全部根节点。可生成py代码的树只包含唯一模拟器子节点。 */
+            /* 数据 */
+            // 输入数据
+            data: null,
+            // 布局数据
             root: null,
+            // 节点编号
+            index: null,
 
             /* 节点拖拽 */
-            // this.drag 节点拖拽事件
-            drag: null,
+            // 节点拖拽侦听
+            dragListener: null,
             // 节点拖拽状态
             dragStarted: null,
             // 拖拽节点集合，包含节点的先根序列
             dragNodes: null,
+            // 拖拽的节点
+            draggingNode: null,
+            // 目标节点
+            selectedNode: null,
 
             /* 镜头移动 */
             // 镜头移动边界
@@ -30,37 +39,41 @@ export default {
             panTimer: null,
 
             /* 画布组件 */
+            // 画布的高
+            height: 400,
+            // 画布的宽
+            width: 800,
             // SVG画布
             baseSvg: null,
             // 交互树组件集合
             svgGroup: null,
-
+            // 画布缩放侦听
             zoomListener: null,
-            index: 0,
-            duration: 750,
-            nodes: [],
-            links: [],
-            treeData: null
+            // 边产生器
+            linkGenerator: null,
+
+            /* 动画 */
+            // 动画时长
+            duration: 750
         };
-    },
-    computed: {
-        tree: function() {
-            return d3.tree().size([this.height, this.width]);
-        }
     },
     mounted: function() {
         const vue = this;
-        this.width = 800;
-        this.height = 400;
         this.zoomListener = d3.zoom()
-            .scaleExtent([1 / 2, 8])
+            .scaleExtent([0.5, 3])
             .on('zoom', this.zoom);
         this.baseSvg = d3.select('svg')
             .attr('width', this.width)
             .attr('height', this.height)
             .call(this.zoomListener);
-
-        this.drag = d3.drag()
+        this.linkGenerator = d3.linkHorizontal()
+            .x(function(d) {
+                return d.y;
+            })
+            .y(function(d) {
+                return d.x;
+            });
+        this.dragListener = d3.drag()
             // 标记拖拽开始
             .on('start', function(d) {
                 if (d === vue.root) {
@@ -89,7 +102,7 @@ export default {
                 }
                 else if (relCoords[0] > $('svg').width() - vue.panBoundary) {
                     direction = 'right';
-                    panSpeed = relCoords[0] - $('svg').width() + vue.panBoundary
+                    panSpeed = relCoords[0] - $('svg').width() + vue.panBoundary;
                 }
                 else if (relCoords[1] < vue.panBoundary) {
                     direction = 'up';
@@ -97,7 +110,7 @@ export default {
                 }
                 else if (relCoords[1] > $('svg').height() - vue.panBoundary) {
                     direction = 'down';
-                    panSpeed = relCoords[1] - $('svg').height() + vue.panBoundary
+                    panSpeed = relCoords[1] - $('svg').height() + vue.panBoundary;
                 }
                 else {
                     clearTimeout(vue.panTimer);
@@ -110,19 +123,28 @@ export default {
                 d.y0 += d3.event.dx;
                 const node = d3.select(this);
                 node.attr('transform', 'translate(' + d.y0 + ', ' + d.x0 + ')');
+                vue.updateTempConnector();
             })
-            .on('end', function() {
+            .on('end', function(d) {
+                if (d === vue.root) {
+                    return;
+                }
+                if (vue.selectedNode) {
+                    // TODO: 将节点挂载
+                }
+                endDrag();
                 clearTimeout(vue.panTimer);
             });
         this.svgGroup = this.baseSvg.append('g');
-        this.root = this.initDev();
+        this.data = venue_data;
+        this.hierarchy();
+        // 更新树显示
         this.update(this.root);
     },
     methods: {
         // 镜头移动：当拖动元素到达边界区时
         pan: function(direction, panSpeed) {
             clearTimeout(this.panTimer);
-            let transform = d3.zoomTransform(this.svgGroup);
             const vue = this;
             let dx = 0,
                 dy = 0;
@@ -147,22 +169,64 @@ export default {
                 vue.pan(direction, panSpeed);
             }, 50);
         },
+        // 添加选中节点到拖拽节点的临时连线
+        updateTempConnector: function() {
+            let data = [];
+            if (this.draggingNode !== null && this.selectedNode !== null) {
+                data = [{
+                    source: {
+                        'x': this.selectedNode.x0,
+                        'y': this.selectedNode.y0
+                    },
+                    target: {
+                        'x': this.draggingNode.x0,
+                        'y': this.draggingNode.y0
+                    }
+                }];
+            }
+            const link = this.svgGroup.selectAll('.temp-link').data(data);
+            // Enter
+            link.enter()
+                .append('path')
+                .attr('class', 'temp-link')
+                .attr('d', this.linkGenerator);
+            // Update
+            link.attr('d', this.linkGenerator);
+            // Exit
+            link.exit()
+                .remove();
+        },
+        // 计算层次化数据，供布局函数使用
+        hierarchy: function() {
+            this.root = d3.hierarchy(this.data);
+            // 设置根节点初始坐标
+            this.root.x0 = this.height / 2;
+            this.root.y0 = 0;
+            // 初始化节点id
+            this.index = 0;
+        },
         initDrag: function(d, domNode) {
+            this.draggingNode = d;
+            d3.select(domNode).select('.ghostCircle')
+                .attr('pointer-events', 'none');
+            d3.selectAll('.ghostCircle')
+                .attr('class', 'ghostCircle show');
+            d3.select(domNode)
+                .attr('class', 'node activeDrag');
+            // 将不是选中节点的节点下放
+            this.svgGroup.selectAll('g.node')
+                .sort(function(a) {
+                    if (a.id === this.draggingNode.id) {
+                        return 1;
+                    }
+                    return -1;
+                });
 
+            this.selectedNode = this.root;
             // this.svg.attr('transform', d3.event.transform);
             this.dragStarted = null;
         },
-        initDev: function() {
-            const rootData = {
-                'type': 'root',
-                'children': [venue_data]
-            };
-            const root = d3.hierarchy(rootData);
-            root.x0 = this.height / 2;
-            root.y0 = 0;
-            return root;
-        },
-        toggle: function(d) {
+        nodeClick: function(d) {
             if (d.children || d._children) {
                 if (d.children) {
                     this.$set(d, '_children', d.children);
@@ -178,120 +242,146 @@ export default {
                 });
             }
         },
-        diagonal: function (s, d) {
-            return `M ${s.y} ${s.x}
-                    C ${(s.y + d.y) / 2} ${s.x},
-                    ${(s.y + d.y) / 2} ${d.x},
-                    ${d.y} ${d.x}`;
-        },
-        getNodesAndLinks: function() {
-            this.treeData = this.tree(this.root);
-            this.nodes = this.treeData.descendants();
-            this.links = this.nodes.slice(1);
-        },
-        update: function(source) {
-            this.getNodesAndLinks();
-            this.nodes.forEach(d => {
-                d.y = d.depth * 180;
-            });
-            const svg = this.svgGroup;
+        // 移动到交互圈内
+        ghostOver: function(node) {
 
-            const node = svg.selectAll('g.node')
-                .data(this.nodes, d => {
+        },
+        // 移动出交互圈
+        ghostOut: function(node) {
+
+        },
+        // 更新树显示
+        update: function(source) {
+            // 保存外部this
+            const vue = this;
+            // 计算最大标签长度
+            const labelLength = [];
+            const genLabelLength = function(d) {
+                if (d.children && d.children.length) {
+                    labelLength.push((d.data.name || d.data.type).length);
+                    d.children.forEach(function(n) {
+                        genLabelLength(n);
+                    });
+                }
+            };
+            genLabelLength(this.root);
+            const maxLabelLength = d3.max(labelLength);
+            // 配置树布局产生器，节点高度根据最大标签长度计算，宽度固定为25像素
+            const tree = d3.tree()
+                .nodeSize([25, maxLabelLength * 8]);
+            // 布局
+            this.root = tree(this.root);
+            // 获取节点数组和边数组
+            const nodes = this.root.descendants();
+            const links = this.root.links();
+            /* 绘制节点 */
+            const node = this.svgGroup.selectAll('g.node')
+                .data(nodes, function(d) {
                     return d.id || (d.id = ++this.index);
                 });
-
-            const nodeEnter = node.enter().append('g')
-                .call(this.drag)
+            // Enter
+            const nodeEnter = node.enter()
+                .append('g')
+                .call(this.dragListener)
                 .attr('class', function(d) {
-                    return 'node ' + d.data.type;
+                    return `node ${d.data.type}${d._children ? ' collapsed' : ''}`;
                 })
-                .attr('transform', () => {
-                    return 'translate(' + source.y0 + ', ' + source.x0 + ')';
+                .attr('transform', function() {
+                    return `translate(${source.y0}, ${source.x0})`;
                 })
-                .on('click', this.toggle);
-
+                .on('click', this.nodeClick);
+            // 绘制初始节点
             nodeEnter.append('circle')
-                .attr('r', 1e-6);
-
+                .attr('r', 0);
+            // 绘制初始文字
             nodeEnter.append('text')
+                .attr('class', function(d) {
+                    return d.children || d._children ? 'internal' : 'leaf';
+                })
                 .attr('x', function(d) {
-                    return d.children || d._children ? -15 : 15;
+                    return d.children || d._children ? -8 : 8;
                 })
-                .attr('dy', 5)
-                .attr('text-anchor', function(d) {
-                    return d.children || d._children ? 'end' : 'start';
-                })
+                .attr('dy', -3.5)
+                .style('fill-opacity', 0)
                 .text(function(d) {
-                    return d.data.name ? d.data.name : d.data.type;
-                })
-                .style('fill-opacity', 1e-6);
-
+                    return d.data.name || d.data.type;
+                });
+            // 绘制交互圈
+            nodeEnter.append('circle')
+                .attr('class', 'ghostCircle show')
+                .attr('r', 25)
+                .attr('pointer-events', 'mouseover')
+                .on('mouseover', this.ghostOver)
+                .on('mouseout', this.ghostOut);
+            // Update
             const nodeUpdate = nodeEnter.merge(node)
                 .transition()
                 .duration(this.duration)
-                .attr('transform', d => {
-                    return 'translate(' + d.y + ', ' + d.x + ')';
+                .attr('transform', function(d) {
+                    return `translate(${d.y}, ${d.x})`;
                 });
-
+            // 调整节点大小
             nodeUpdate.select('circle')
-                .attr('r', 10)
-                .attr('class', d => {
-                    return d._children ? 'collapsed' : '';
-                });
-
+                .attr('r', 5);
+            // 调整文字透明度
             nodeUpdate.select('text')
                 .style('fill-opacity', 1);
-
+            // Exit
             const nodeExit = node.exit()
                 .transition()
                 .duration(this.duration)
-                .attr('transform', () => {
-                    return 'translate(' + source.y + ', ' + source.x + ')';
+                .attr('transform', function() {
+                    return `translate(${source.y}, ${source.x})`;
                 })
                 .remove();
-
+            // 缩小节点
             nodeExit.select('circle')
-                .attr('r', 1e-6);
-
+                .attr('r', 0);
+            // 隐藏文字
             nodeExit.select('text')
-                .style('fill-opacity', 1e-6);
+                .style('fill-opacity', 0);
 
-            const link = svg.selectAll('path.link')
-                .data(this.links, d => {
-                    return d.id;
+            /* 绘制边 */
+            const link = this.svgGroup.selectAll('path.link')
+                .data(links, function(d) {
+                    return d.target.id;
                 });
-
-            const linkEnter = link.enter().insert('path', 'g')
+            // Enter
+            const linkEnter = link.enter()
+                .insert('path', 'g')
                 .attr('class', 'link')
-                .attr('d', () => {
-                    const o = {
-                        x: source.x0,
-                        y: source.y0
+                .attr('d', function() {
+                    const pos = {
+                        'x': source.x0,
+                        'y': source.y0
                     };
-                    return this.diagonal(o, o);
+                    return vue.linkGenerator({
+                        'source': pos,
+                        'target': pos
+                    });
                 });
-
-            const linkUpdate = linkEnter.merge(link);
-
-            linkUpdate.transition()
+            // Update
+            linkEnter.merge(link)
+                .transition()
                 .duration(this.duration)
-                .attr('d', d => {
-                    return this.diagonal(d, d.parent);
-                });
-
-            link.exit().transition()
+                .attr('d', this.linkGenerator);
+            // Exit
+            link.exit()
+                .transition()
                 .duration(this.duration)
-                .attr('d', () => {
-                    const o = {
-                        x: source.x,
-                        y: source.y
+                .attr('d', function() {
+                    const pos = {
+                        'x': source.x,
+                        'y': source.y
                     };
-                    return this.diagonal(o, o);
+                    return vue.linkGenerator({
+                        'source': pos,
+                        'target': pos
+                    });
                 })
                 .remove();
-
-            this.nodes.forEach(function(d) {
+            // 保存当前坐标
+            nodes.forEach(function(d) {
                 d.x0 = d.x;
                 d.y0 = d.y;
             });
@@ -307,61 +397,51 @@ export default {
 
 </script>
 
-<style>
-circle {
-    stroke-width: 1.5px;
-}
-
-.root circle {
-    fill: #DCB5FF;
-    stroke: #BE77FF;
-}
-
-.content circle {
-    fill: #DFF0D8;
-    stroke: #5CB85C;
-}
-
-.pickone circle {
-    fill: #F2DEDE;
-    stroke: #D9534F;
-}
-
-.order circle {
-    fill: #D9EDF7;
-    stroke: #5BC0DE;
-}
-
-.exchangeable circle {
-    fill: #FCF8E3;
-    stroke: #F0AD4E;
-}
-
-circle.collapsed {
-    fill: #FFF;
-}
-
-.node {
-    cursor: pointer;
-}
-
-.node text {
-    font: 15px sans-serif;
-}
-
-.node--internal circle {
-    fill: #555;
-}
-
-.node--internal text {
-    text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
-}
-
-.link {
-    fill: none;
-    stroke: #555;
-    stroke-opacity: 0.4;
-    stroke-width: 1.5px;
-}
-
+<style lang="stylus">
+.temp-link
+    fill: none
+    stroke: red
+    stroke-width: 3px
+    stroke-opacity: 0.5
+.ghostCircle
+    &.show
+        opacity: 0.2
+        display: block
+circle
+    stroke-width: 1.5px
+    &.collapsed
+        fill: #FFF
+.content
+    circle
+        fill: #DFF0D8
+        stroke: #5CB85C
+.root
+    circle
+        fill: #DCB5FF
+        stroke: #BE77FF
+.pickone
+    circle
+        fill: #F2DEDE;
+        stroke: #D9534F
+.order
+    circle
+        fill: #D9EDF7;
+        stroke: #5BC0DE
+.exchangeable
+    circle
+        fill: #FCF8E3;
+        stroke: #F0AD4E
+.node
+    cursor: pointer
+    text
+        font: 10px sans-serif
+        &.internal
+            text-anchor: end
+        &.leaf
+            text-anchor: start
+.link
+    fill: none
+    stroke: #555
+    stroke-width: 1.5px
+    stroke-opacity: 0.4
 </style>
