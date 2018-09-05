@@ -40,7 +40,7 @@ export default {
 
             /* 画布组件 */
             // 画布的高
-            height: 400,
+            height: 600,
             // 画布的宽
             width: 800,
             // SVG画布
@@ -90,7 +90,7 @@ export default {
                     return;
                 }
                 if (vue.dragStarted) {
-                    vue.initDrag(d, this);
+                    vue.dragStart(d, this);
                 }
                 // 获取相对画布的鼠标坐标
                 const relCoords = d3.mouse($('svg').get(0));
@@ -122,7 +122,7 @@ export default {
                 d.x0 += d3.event.dy;
                 d.y0 += d3.event.dx;
                 const node = d3.select(this);
-                node.attr('transform', 'translate(' + d.y0 + ', ' + d.x0 + ')');
+                node.attr('transform', `translate(${d.y0}, ${d.x0})`);
                 vue.updateTempConnector();
             })
             .on('end', function(d) {
@@ -132,8 +132,8 @@ export default {
                 if (vue.selectedNode) {
                     // TODO: 将节点挂载
                 }
-                endDrag();
                 clearTimeout(vue.panTimer);
+                vue.dragEnd(this);
             });
         this.svgGroup = this.baseSvg.append('g');
         this.data = venue_data;
@@ -205,26 +205,68 @@ export default {
             // 初始化节点id
             this.index = 0;
         },
-        initDrag: function(d, domNode) {
+        dragStart: function(d, domNode) {
+            const vue = this;
             this.draggingNode = d;
+            // 阻止拖拽节点的交互圈鼠标事件
             d3.select(domNode).select('.ghostCircle')
                 .attr('pointer-events', 'none');
+            // 添加交互圈show class
             d3.selectAll('.ghostCircle')
                 .attr('class', 'ghostCircle show');
-            d3.select(domNode)
-                .attr('class', 'node activeDrag');
+            // 添加拖拽节点的activeDrag class
+            domNode.classList.add('activeDrag');
             // 将不是选中节点的节点下放
             this.svgGroup.selectAll('g.node')
                 .sort(function(a) {
-                    if (a.id === this.draggingNode.id) {
+                    if (a.id !== vue.draggingNode.id) {
                         return 1;
                     }
                     return -1;
                 });
-
-            this.selectedNode = this.root;
-            // this.svg.attr('transform', d3.event.transform);
+            // 如果选中节点有子节点，删除边和节点
+            if (this.dragNodes.length > 1) {
+                // 删除边
+                const links = d.links();
+                this.svgGroup.selectAll('path.link')
+                    .data(links, function(link) {
+                        return link.target.id;
+                    })
+                    .remove();
+                // 删除点
+                this.svgGroup.selectAll('g.node')
+                    .data(this.dragNodes.slice(1), function(node) {
+                        return node.id;
+                    })
+                    .remove();
+            }
+            // 删除到父节点的连线
+            this.svgGroup.selectAll('path.link')
+                .filter(function(link) {
+                    if (link.target.id === vue.draggingNode.id) {
+                        return true;
+                    }
+                    return false;
+                })
+                .remove();
             this.dragStarted = null;
+        },
+        dragEnd: function(domNode) {
+            this.selectedNode = null;
+            // 去除交互圈show class
+            d3.selectAll('.ghostCircle')
+                .attr('class', 'ghostCircle');
+            // 去除选中节点的activeDrag class
+            domNode.classList.remove('activeDrag');
+            // 恢复鼠标事件
+            d3.select(domNode).select('.ghostCircle')
+                .attr('pointer-events', '');
+            this.updateTempConnector();
+            if (this.draggingNode !== null) {
+                this.update(this.root);
+                this.centerNode(this.draggingNode);
+                this.draggingNode = null;
+            }
         },
         nodeClick: function(d) {
             if (d.children || d._children) {
@@ -244,11 +286,13 @@ export default {
         },
         // 移动到交互圈内
         ghostOver: function(node) {
-
+            this.selectedNode = node;
+            this.updateTempConnector();
         },
         // 移动出交互圈
-        ghostOut: function(node) {
-
+        ghostOut: function() {
+            this.selectedNode = null;
+            this.updateTempConnector();
         },
         // 更新树显示
         update: function(source) {
@@ -277,7 +321,7 @@ export default {
             /* 绘制节点 */
             const node = this.svgGroup.selectAll('g.node')
                 .data(nodes, function(d) {
-                    return d.id || (d.id = ++this.index);
+                    return d.id || (d.id = ++vue.index);
                 });
             // Enter
             const nodeEnter = node.enter()
@@ -307,8 +351,11 @@ export default {
                     return d.data.name || d.data.type;
                 });
             // 绘制交互圈
-            nodeEnter.append('circle')
-                .attr('class', 'ghostCircle show')
+            nodeEnter.filter(function(d) {
+                return d.data.type !== 'content';
+            })
+                .append('circle')
+                .attr('class', 'ghostCircle')
                 .attr('r', 25)
                 .attr('pointer-events', 'mouseover')
                 .on('mouseover', this.ghostOver)
@@ -407,6 +454,10 @@ export default {
     &.show
         opacity: 0.2
         display: block
+    display: none
+.activeDrag
+    .ghostCircle
+        display: none
 circle
     stroke-width: 1.5px
     &.collapsed
