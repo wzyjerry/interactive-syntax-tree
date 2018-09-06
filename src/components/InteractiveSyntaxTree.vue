@@ -18,7 +18,7 @@ export default {
             // 布局数据
             root: null,
             // 节点编号
-            index: null,
+            index: 0,
 
             /* 节点拖拽 */
             // 节点拖拽侦听
@@ -40,7 +40,7 @@ export default {
 
             /* 画布组件 */
             // 画布的高
-            height: 600,
+            height: 400,
             // 画布的宽
             width: 800,
             // SVG画布
@@ -65,6 +65,7 @@ export default {
         this.baseSvg = d3.select('svg')
             .attr('width', this.width)
             .attr('height', this.height)
+            .attr('class', 'overlay')
             .call(this.zoomListener);
         this.linkGenerator = d3.linkHorizontal()
             .x(function(d) {
@@ -130,7 +131,25 @@ export default {
                     return;
                 }
                 if (vue.selectedNode) {
-                    // TODO: 将节点挂载
+                    // 将节点从父节点上摘除，挂载到新节点上
+                    const index = vue.draggingNode.parent.children.indexOf(vue.draggingNode);
+                    if (index > -1) {
+                        vue.draggingNode.parent.children.splice(index, 1);
+                    }
+                    if (typeof vue.selectedNode.children !== 'undefined') {
+                        vue.selectedNode.children.push(vue.draggingNode);
+                    }
+                    else if (typeof vue.selectedNode._children !== 'undefined') {
+                        vue.selectedNode._children.push(vue.draggingNode);
+                    }
+                    else {
+                        vue.selectedNode.children = [];
+                        vue.selectedNode.children.push(vue.draggingNode);
+                    }
+                    vue.expand(vue.selectedNode);
+                    vue.sortTree();
+                    // 更新树数据，维护一致性
+                    vue.updateData();
                 }
                 clearTimeout(vue.panTimer);
                 vue.dragEnd(this);
@@ -140,8 +159,19 @@ export default {
         this.hierarchy();
         // 更新树显示
         this.update(this.root);
+        this.centerNode(this.root);
     },
     methods: {
+        // 排序树，按节点相对父节点的极坐标夹角排序
+        sortTree: function() {
+            this.root.sort(function(a, b) {
+                const ax = a.x0 - a.parent.x0;
+                const ay = Math.abs(a.y0 - a.parent.y0);
+                const bx = b.x0 - b.parent.x0;
+                const by = Math.abs(b.y0 - b.parent.y0);
+                return (ax / ay) - (bx / by);
+            });
+        },
         // 镜头移动：当拖动元素到达边界区时
         pan: function(direction, panSpeed) {
             clearTimeout(this.panTimer);
@@ -184,12 +214,13 @@ export default {
                     }
                 }];
             }
-            const link = this.svgGroup.selectAll('.temp-link').data(data);
+            const link = this.svgGroup.selectAll('.tempLink').data(data);
             // Enter
             link.enter()
                 .append('path')
-                .attr('class', 'temp-link')
-                .attr('d', this.linkGenerator);
+                .attr('class', 'tempLink')
+                .attr('d', this.linkGenerator)
+                .attr('pointer-events', 'none');
             // Update
             link.attr('d', this.linkGenerator);
             // Exit
@@ -203,8 +234,19 @@ export default {
             this.root.x0 = this.height / 2;
             this.root.y0 = 0;
             // 初始化节点id
-            this.index = 0;
+            this.index += 1000;
         },
+        // 递归展开节点
+        expand: function(d) {
+            if (d._children) {
+                d.children = d._children;
+                d._children = null;
+            }
+            if (d.children) {
+                d.children.forEach(this.expand);
+            }
+        },
+        // 初始化拖动事件
         dragStart: function(d, domNode) {
             const vue = this;
             this.draggingNode = d;
@@ -269,6 +311,9 @@ export default {
             }
         },
         nodeClick: function(d) {
+            if (d3.event.defaultPrevented) {
+                return;
+            }
             if (d.children || d._children) {
                 if (d.children) {
                     this.$set(d, '_children', d.children);
@@ -278,10 +323,8 @@ export default {
                     this.$set(d, 'children', d._children);
                     d._children = null;
                 }
-                this.$nextTick(() => {
-                    this.update(d);
-                    this.centerNode(d);
-                });
+                this.update(d);
+                this.centerNode(d);
             }
         },
         // 移动到交互圈内
@@ -294,30 +337,29 @@ export default {
             this.selectedNode = null;
             this.updateTempConnector();
         },
+        // 更新树数据
+        updateData: function() {
+            this.data = this.generateJSON(this.root);
+            this.hierarchy();
+        },
         // 更新树显示
         update: function(source) {
             // 保存外部this
             const vue = this;
+            // 获取节点数组和边数组
+            const nodes = vue.root.descendants();
+            const links = vue.root.links();
             // 计算最大标签长度
             const labelLength = [];
-            const genLabelLength = function(d) {
-                if (d.children && d.children.length) {
-                    labelLength.push((d.data.name || d.data.type).length);
-                    d.children.forEach(function(n) {
-                        genLabelLength(n);
-                    });
-                }
-            };
-            genLabelLength(this.root);
+            nodes.forEach(function(d) {
+                labelLength.push((d.data.name || d.data.type).length);
+            });
             const maxLabelLength = d3.max(labelLength);
             // 配置树布局产生器，节点高度根据最大标签长度计算，宽度固定为25像素
             const tree = d3.tree()
                 .nodeSize([25, maxLabelLength * 8]);
             // 布局
             this.root = tree(this.root);
-            // 获取节点数组和边数组
-            const nodes = this.root.descendants();
-            const links = this.root.links();
             /* 绘制节点 */
             const node = this.svgGroup.selectAll('g.node')
                 .data(nodes, function(d) {
@@ -328,7 +370,7 @@ export default {
                 .append('g')
                 .call(this.dragListener)
                 .attr('class', function(d) {
-                    return `node ${d.data.type}${d._children ? ' collapsed' : ''}`;
+                    return `node ${d.data.type}`;
                 })
                 .attr('transform', function() {
                     return `translate(${source.y0}, ${source.x0})`;
@@ -345,7 +387,9 @@ export default {
                 .attr('x', function(d) {
                     return d.children || d._children ? -8 : 8;
                 })
-                .attr('dy', -3.5)
+                .attr('dy', function(d) {
+                    return d.children || d._children ? -3.5 : 8.5;
+                })
                 .style('fill-opacity', 0)
                 .text(function(d) {
                     return d.data.name || d.data.type;
@@ -356,12 +400,15 @@ export default {
             })
                 .append('circle')
                 .attr('class', 'ghostCircle')
-                .attr('r', 25)
+                .attr('r', 40)
                 .attr('pointer-events', 'mouseover')
                 .on('mouseover', this.ghostOver)
                 .on('mouseout', this.ghostOut);
             // Update
             const nodeUpdate = nodeEnter.merge(node)
+                .classed('collapsed', function(d) {
+                    return d._children;
+                })
                 .transition()
                 .duration(this.duration)
                 .attr('transform', function(d) {
@@ -433,11 +480,27 @@ export default {
                 d.y0 = d.y;
             });
         },
+        // 将节点居中显示
         centerNode: function(node) {
             this.zoomListener.translateTo(this.baseSvg.transition().duration(this.duration), node.y0, node.x0);
         },
+        // 缩放平移变换事件
         zoom: function() {
             this.svgGroup.attr('transform', d3.event.transform);
+        },
+        // 根据当前布局数据生成对应的JSON Object
+        generateJSON: function(d) {
+            const vue = this;
+            const result = {};
+            Object.assign(result, d.data);
+            const children = d.children || d._children;
+            if (children) {
+                result.children = [];
+                children.forEach(function(child) {
+                    result.children.push(vue.generateJSON(child));
+                });
+            }
+            return result;
         }
     }
 };
@@ -445,23 +508,10 @@ export default {
 </script>
 
 <style lang="stylus">
-.temp-link
-    fill: none
-    stroke: red
-    stroke-width: 3px
-    stroke-opacity: 0.5
-.ghostCircle
-    &.show
-        opacity: 0.2
-        display: block
-    display: none
-.activeDrag
-    .ghostCircle
-        display: none
+.overlay
+    background-color: #EEE
 circle
     stroke-width: 1.5px
-    &.collapsed
-        fill: #FFF
 .content
     circle
         fill: #DFF0D8
@@ -482,6 +532,9 @@ circle
     circle
         fill: #FCF8E3;
         stroke: #F0AD4E
+.collapsed
+    circle
+        fill: #FFF
 .node
     cursor: pointer
     text
@@ -495,4 +548,17 @@ circle
     stroke: #555
     stroke-width: 1.5px
     stroke-opacity: 0.4
+.tempLink
+    fill: none
+    stroke: red
+    stroke-width: 3px
+    stroke-opacity: 0.5
+.ghostCircle
+    &.show
+        opacity: 0.2
+        display: block
+    display: none
+.activeDrag
+    .ghostCircle
+        display: none
 </style>
