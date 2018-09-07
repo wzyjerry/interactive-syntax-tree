@@ -1,5 +1,7 @@
 <template>
-  <svg/>
+  <svg
+    height="100vh"
+    width="80vw" />
 </template>
 
 <script>
@@ -56,11 +58,12 @@ export default {
     mounted: function() {
         const vue = this;
         this.zoomListener = d3.zoom()
-            .scaleExtent([0.5, 3])
+            .scaleExtent([0.5, 4])
             .on('zoom', this.zoom);
         this.baseSvg = d3.select('svg')
             .attr('class', 'overlay')
-            .call(this.zoomListener);
+            .call(this.zoomListener)
+            .on('dblclick.zoom', null);
         this.linkGenerator = d3.linkHorizontal()
             .x(function(d) {
                 return d.y;
@@ -120,8 +123,9 @@ export default {
                 node.attr('transform', `translate(${d.y0}, ${d.x0})`);
                 vue.updateTempConnector();
             })
+            // 拖拽结束
             .on('end', function(d) {
-                if (d === vue.root) {
+                if (d === vue.root || vue.draggingNode === null) {
                     return;
                 }
                 if (vue.selectedNode) {
@@ -129,14 +133,14 @@ export default {
                     const index = vue.draggingNode.parent.children.indexOf(vue.draggingNode);
                     if (index > -1) {
                         vue.draggingNode.parent.children.splice(index, 1);
-                        if (vue.draggingNode.parent.children.length === 0) {
-                            delete vue.draggingNode.parent['children'];
+                        if (!vue.draggingNode.parent.children.length) {
+                            delete vue.draggingNode.parent.children;
                         }
                     }
-                    if (typeof vue.selectedNode.children !== 'undefined') {
+                    if (vue.selectedNode.children) {
                         vue.selectedNode.children.push(vue.draggingNode);
                     }
-                    else if (typeof vue.selectedNode._children !== 'undefined') {
+                    else if (vue.selectedNode._children) {
                         vue.selectedNode._children.push(vue.draggingNode);
                     }
                     else {
@@ -148,31 +152,16 @@ export default {
                     vue.updateHierarchy();
                     vue.expand(vue.selectedNode);
                     vue.sortTree();
-                    /*
-                     * 更新树数据，维护一致性
-                     * vue.updateData();
-                     */
                 }
                 clearTimeout(vue.panTimer);
-                vue.dragEnd(this);
+                vue.dragEnd(vue.draggingNode.parent, this);
             });
         this.svgGroup = this.baseSvg.append('g');
         this.data = venue_data;
         this.hierarchy();
         this.update(this.root);
-        const r = function sleep(numberMillis) { 
-            var now = new Date(); 
-            var exitTime = now.getTime() + numberMillis; 
-            while (true) { 
-            now = new Date(); 
-            if (now.getTime() > exitTime) 
-            return; 
-            } 
-        }
-        this.$nextTick(function() {
-            r(1);
-            this.centerNode(this.root);
-        });
+        this.zoomListener.scaleTo(this.baseSvg, 2);
+        this.centerNode(this.root);
     },
     methods: {
         updateHierarchy: function() {
@@ -263,14 +252,11 @@ export default {
             this.root.x0 = 0;
             this.root.y0 = 0;
         },
-        // 递归展开节点
+        // 展开节点
         expand: function(d) {
             if (d._children) {
                 d.children = d._children;
-                d._children = null;
-            }
-            if (d.children) {
-                d.children.forEach(this.expand);
+                delete d._children;
             }
         },
         // 初始化拖动事件
@@ -320,7 +306,7 @@ export default {
                 .remove();
             this.dragStarted = null;
         },
-        dragEnd: function(domNode) {
+        dragEnd: function(d, domNode) {
             this.selectedNode = null;
             // 去除交互圈show class
             d3.selectAll('.ghostCircle')
@@ -332,7 +318,7 @@ export default {
                 .attr('pointer-events', '');
             this.updateTempConnector();
             if (this.draggingNode !== null) {
-                this.update(this.root);
+                this.update(d);
                 this.centerNode(this.draggingNode);
                 this.draggingNode = null;
             }
@@ -343,12 +329,12 @@ export default {
             }
             if (d.children || d._children) {
                 if (d.children) {
-                    this.$set(d, '_children', d.children);
-                    d.children = null;
+                    d._children = d.children;
+                    delete d.children;
                 }
                 else {
-                    this.$set(d, 'children', d._children);
-                    d._children = null;
+                    d.children = d._children;
+                    delete d._children;
                 }
                 this.update(d);
                 this.centerNode(d);
@@ -402,7 +388,7 @@ export default {
                 .attr('transform', function() {
                     return `translate(${source.y0}, ${source.x0})`;
                 })
-                .on('click', this.nodeClick);
+                .on('dblclick', this.nodeClick);
             // 绘制初始节点
             nodeEnter.append('circle')
                 .attr('r', 0);
@@ -537,9 +523,6 @@ export default {
 </script>
 
 <style lang="stylus">
-svg
-    height: 600px
-    width: 800px
 .overlay
     background-color: #EEE
 circle
