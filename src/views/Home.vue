@@ -9,9 +9,9 @@
 import InteractiveSyntaxTree from '@/components/InteractiveSyntaxTree.vue';
 
 export default {
-    name: 'Home',
-    components: {
-        InteractiveSyntaxTree: InteractiveSyntaxTree
-    }
+  name: 'Home',
+  components: {
+    InteractiveSyntaxTree: InteractiveSyntaxTree
+  }
 };
 </script>
