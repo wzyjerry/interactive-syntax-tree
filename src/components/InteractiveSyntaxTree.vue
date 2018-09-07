@@ -135,6 +135,9 @@ export default {
                     const index = vue.draggingNode.parent.children.indexOf(vue.draggingNode);
                     if (index > -1) {
                         vue.draggingNode.parent.children.splice(index, 1);
+                        if (vue.draggingNode.parent.children.length === 0) {
+                            delete vue.draggingNode.parent['children'];
+                        }
                     }
                     if (typeof vue.selectedNode.children !== 'undefined') {
                         vue.selectedNode.children.push(vue.draggingNode);
@@ -146,10 +149,15 @@ export default {
                         vue.selectedNode.children = [];
                         vue.selectedNode.children.push(vue.draggingNode);
                     }
+                    vue.draggingNode.parent = vue.selectedNode;
+                    // 更新Node信息
+                    vue.updateHierarchy();
                     vue.expand(vue.selectedNode);
                     vue.sortTree();
-                    // 更新树数据，维护一致性
-                    vue.updateData();
+                    /*
+                     * 更新树数据，维护一致性
+                     * vue.updateData();
+                     */
                 }
                 clearTimeout(vue.panTimer);
                 vue.dragEnd(this);
@@ -157,11 +165,26 @@ export default {
         this.svgGroup = this.baseSvg.append('g');
         this.data = venue_data;
         this.hierarchy();
-        // 更新树显示
         this.update(this.root);
         this.centerNode(this.root);
     },
     methods: {
+        updateHierarchy: function() {
+            const update = function(d, depth) {
+                d.depth = depth;
+                const children = d.children || d._children;
+                if (children && children.length) {
+                    d.height = d3.max(children.map(function(child) {
+                        return update(child, depth + 1);
+                    })) + 1;
+                }
+                else {
+                    d.height = 0;
+                }
+                return d.height;
+            };
+            update(this.root, 0);
+        },
         // 排序树，按节点相对父节点的极坐标夹角排序
         sortTree: function() {
             this.root.sort(function(a, b) {
@@ -233,8 +256,6 @@ export default {
             // 设置根节点初始坐标
             this.root.x0 = this.height / 2;
             this.root.y0 = 0;
-            // 初始化节点id
-            this.index += 1000;
         },
         // 递归展开节点
         expand: function(d) {
@@ -381,15 +402,6 @@ export default {
                 .attr('r', 0);
             // 绘制初始文字
             nodeEnter.append('text')
-                .attr('class', function(d) {
-                    return d.children || d._children ? 'internal' : 'leaf';
-                })
-                .attr('x', function(d) {
-                    return d.children || d._children ? -8 : 8;
-                })
-                .attr('dy', function(d) {
-                    return d.children || d._children ? -3.5 : 8.5;
-                })
                 .style('fill-opacity', 0)
                 .text(function(d) {
                     return d.data.name || d.data.type;
@@ -405,11 +417,22 @@ export default {
                 .on('mouseover', this.ghostOver)
                 .on('mouseout', this.ghostOut);
             // Update
-            const nodeUpdate = nodeEnter.merge(node)
+            let nodeUpdate = nodeEnter.merge(node)
                 .classed('collapsed', function(d) {
                     return d._children;
+                });
+            // 立即更新文字位置
+            nodeUpdate.select('text')
+                .attr('x', function(d) {
+                    return d.children || d._children ? -8 : 8;
                 })
-                .transition()
+                .attr('dy', function(d) {
+                    return d.children || d._children ? -3.5 : 8.5;
+                })
+                .attr('class', function(d) {
+                    return d.children || d._children ? 'internal' : 'leaf';
+                });
+            nodeUpdate = nodeUpdate.transition()
                 .duration(this.duration)
                 .attr('transform', function(d) {
                     return `translate(${d.y}, ${d.x})`;
