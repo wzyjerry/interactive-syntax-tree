@@ -1,9 +1,4 @@
 module.exports = {
-    baseUrl: './',
+    baseUrl: process.env.NODE_ENV === 'production' ? '/interactive-syntax-tree/' : '/',
     lintOnSave: true,
-    configureWebpack: {
-        output: {
-            libraryExport: 'default'
-        }
-    }
 }
