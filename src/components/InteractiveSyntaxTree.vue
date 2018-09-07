@@ -4,7 +4,7 @@
 
 <script>
 import * as d3 from 'd3';
-import * as $ from 'jquery';
+import $ from 'jquery';
 
 /* TODO: 数据,之后由界面导入 */
 const venue_data = require('@/assets/data/venue.json');
@@ -39,10 +39,6 @@ export default {
             panTimer: null,
 
             /* 画布组件 */
-            // 画布的高
-            height: 400,
-            // 画布的宽
-            width: 800,
             // SVG画布
             baseSvg: null,
             // 交互树组件集合
@@ -63,8 +59,6 @@ export default {
             .scaleExtent([0.5, 3])
             .on('zoom', this.zoom);
         this.baseSvg = d3.select('svg')
-            .attr('width', this.width)
-            .attr('height', this.height)
             .attr('class', 'overlay')
             .call(this.zoomListener);
         this.linkGenerator = d3.linkHorizontal()
@@ -166,7 +160,19 @@ export default {
         this.data = venue_data;
         this.hierarchy();
         this.update(this.root);
-        this.centerNode(this.root);
+        const r = function sleep(numberMillis) { 
+            var now = new Date(); 
+            var exitTime = now.getTime() + numberMillis; 
+            while (true) { 
+            now = new Date(); 
+            if (now.getTime() > exitTime) 
+            return; 
+            } 
+        }
+        this.$nextTick(function() {
+            r(1);
+            this.centerNode(this.root);
+        });
     },
     methods: {
         updateHierarchy: function() {
@@ -254,7 +260,7 @@ export default {
         hierarchy: function() {
             this.root = d3.hierarchy(this.data);
             // 设置根节点初始坐标
-            this.root.x0 = this.height / 2;
+            this.root.x0 = 0;
             this.root.y0 = 0;
         },
         // 递归展开节点
@@ -531,6 +537,9 @@ export default {
 </script>
 
 <style lang="stylus">
+svg
+    height: 600px
+    width: 800px
 .overlay
     background-color: #EEE
 circle

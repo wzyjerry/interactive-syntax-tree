@@ -2,6 +2,8 @@
 
 交互语法树
 
+项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.1.0 [完成拖拽]
+
 ---
 ## 定义
 
