@@ -2,7 +2,7 @@
 
 交互语法树
 
-项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.1.0 [完成拖拽]
+项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.2.0 [完成属性编辑]
 
 ---
 ## 定义

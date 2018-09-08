@@ -1,80 +1,146 @@
 <template>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-9">
-        <svg
-          height="100vh"
-          width="100%" />
-      </div>
-      <div class="col-3">
-        <div
-          id="tab-control"
-          class="card">
-          <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-              <li class="nav-item">
-                <a
-                  id="tab-link-ist"
-                  href="#"
-                  class="nav-link active"
-                  @click="linkISTClick">Interactive Syntax Tree</a>
-              </li>
-              <li class="nav-item">
-                <a
-                  id="tab-link-prop"
-                  href="#"
-                  class="nav-link"
-                  @click="linkPropClick">Property Page</a>
-              </li>
-            </ul>
-          </div>
-          <div
-            id="tab-ist"
-            class="card-body">
-            <div class="button-group d-flex">
-              <button
-                class="btn btn-primary w-100"
-                @click="save">Generate Syntax Tree JSON</button>
-            </div>
-          </div>
-          <div
-            id="tab-prop"
-            class="card-body"
-            hidden>
-            <form>
-              <div
-                v-if="nodeProp
-                  && (nodeProp.data.type == 'order'
-                  || nodeProp.data.type == 'pickone'
-                || nodeProp.data.type == 'exchangeable')"
-                class="form-group row">
-                <label
-                  for="nodeTypeSelect"
-                  class="col-form-label col-3">Type</label>
-                <select
-                  id="nodeTypeSelect"
-                  v-model="nodeProp.data.type"
-                  class="custom-select col-9">
-                  <option>order</option>
-                  <option>pickone</option>
-                  <option>exchangeable</option>
-                </select>
-              </div>
-              <div
-                v-if="nodeProp && nodeProp.data.type == 'content'"
-                class="form-group row">
-                <label
-                  for="nodeType"
-                  class="col-form-label col-3">Type</label>
-                <span class="col-form-label col-9">{{ nodeProp.data.type }}</span>
-              </div>
-            </form>
-            <div class="dropdown-divider" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <el-container>
+    <el-main>
+      <el-row :gutter="20">
+        <el-col :span="18">
+          <svg
+            height="90vh"
+            width="100%" />
+        </el-col>
+        <el-col :span="6">
+          <el-tabs
+            type="border-card">
+            <el-tab-pane label="Interactive Syntax Tree">
+              <el-row
+                type="flex"
+                justify="center">
+                <el-button
+                  type="primary"
+                  @click="save">Generate Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
+              </el-row>
+            </el-tab-pane>
+            <el-tab-pane label="Property Page">
+              <el-form
+                v-if="nodeProp"
+                :model="nodeProp.data"
+                label-width="80px">
+                <el-collapse :value="['common', 'advanced']">
+                  <el-collapse-item
+                    name="common"
+                    title="Common Properties">
+                    <el-form-item
+                      v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
+                      label="Type">
+                      <el-radio-group v-model="nodeProp.data.type">
+                        <el-radio label="order"/>
+                        <el-radio label="pickone"/>
+                        <el-radio label="exchangeable"/>
+                      </el-radio-group>
+                    </el-form-item>
+                    <el-form-item
+                      v-if="nodeProp.data.type == 'content'"
+                      label="Type">
+                      <el-tag>{{ nodeProp.data.type }}</el-tag>
+                    </el-form-item>
+                    <el-form-item label="Name">
+                      <el-input
+                        v-model="nodeProp.data.name"
+                        placeholder="Name"
+                        clearable/>
+                    </el-form-item>
+                    <el-form-item label="Dropout">
+                      <el-slider
+                        v-model="nodeProp.data.dropout"
+                        :min="0"
+                        :max="1"
+                        :step="0.01"
+                        show-input/>
+                    </el-form-item>
+                  </el-collapse-item>
+                  <el-collapse-item
+                    name="advanced"
+                    title="Advanced Properties">
+                    <el-form-item
+                      v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
+                      label="Weight">
+                      <el-input-number
+                        v-model="nodeProp.data.weight"
+                        :precision="2"
+                        :step="0.01"
+                        :min="0"/>
+                    </el-form-item>
+                    <el-row v-if="nodeProp.data.type === 'content'">
+                      <el-form-item label="FromFile">
+                        <el-switch v-model="nodeProp.data.from_file"/>
+                      </el-form-item>
+                      <el-form-item
+                        v-if="nodeProp.data.from_file"
+                        label="Filename">
+                        <el-input
+                          v-model="nodeProp.data.filename"
+                          placeholder="Filename"
+                          clearable/>
+                      </el-form-item>
+                      <el-form-item
+                        v-else
+                        label="Content">
+                        <el-tag
+                          v-for="tag in nodeProp.data.content"
+                          :key="tag"
+                          :disable-transitions="false"
+                          closable
+                          @close="removeFromContent(tag)">
+                          {{ tag }}
+                        </el-tag>
+                        <el-input
+                          v-if="contentTagVisible"
+                          ref="saveTagInput"
+                          v-model="contentTag"
+                          class="input-new-tag"
+                          @keyup.enter.native="addToContent"
+                          @blur="addToContent"/>
+                        <el-button
+                          v-else
+                          class="button-new-tag"
+                          size="small"
+                          @click="showContentTagInput">+ New Tag</el-button>
+                      </el-form-item>
+                      <el-form-item
+                        v-if="nodeProp.data.entity"
+                        label="Entity">
+                        <el-input
+                          v-model="nodeProp.data.entity"
+                          placeholder="Entity"
+                          clearable/>
+                      </el-form-item>
+                      <el-form-item label="Cut">
+                        <el-slider
+                          v-model="nodeProp.data.cut"
+                          :min="0"
+                          :max="1"
+                          :step="0.01"
+                          show-input/>
+                      </el-form-item>
+                      <el-form-item
+                        v-if="nodeProp.data.cut && nodeProp.data.cut>0"
+                        label="WordCut">
+                        <el-slider
+                          v-model="nodeProp.data.word_cut"
+                          :min="0"
+                          :max="1"
+                          :step="0.01"
+                          show-input/>
+                      </el-form-item>
+                    </el-row>
+                  </el-collapse-item>
+                </el-collapse>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
+        </el-col>
+      </el-row>
+    </el-main>
+  </el-container>
 </template>
 
 <script>
@@ -128,14 +194,19 @@ export default {
       duration: 750,
 
       /* 节点属性 */
+      // 当前选中的节点
       nodeProp: null,
-      sss: 'exchangeable'
+      // 标签添加中
+      contentTagVisible: false,
+      // 标签内容
+      contentTag: null
     };
   },
   watch: {
     nodeProp: {
-      handler: function() {
+      handler: function(val) {
         this.update(this.root);
+        this.centerNode(val);
       },
       deep: true
     }
@@ -245,21 +316,25 @@ export default {
     this.data = venue_data;
     this.hierarchy();
     this.update(this.root);
-    this.zoomListener.scaleTo(this.baseSvg, 2);
     this.centerNode(this.root);
   },
   methods: {
-    linkISTClick: function() {
-      $('#tab-link-ist').addClass('active');
-      $('#tab-link-prop').removeClass('active');
-      $('#tab-ist').removeAttr('hidden');
-      $('#tab-prop').attr('hidden', 'hidden');
+    removeFromContent: function(tag) {
+      this.nodeProp.data.content.splice(this.nodeProp.data.content.indexOf(tag), 1);
     },
-    linkPropClick: function() {
-      $('#tab-link-ist').removeClass('active');
-      $('#tab-link-prop').addClass('active');
-      $('#tab-ist').attr('hidden', 'hidden');
-      $('#tab-prop').removeAttr('hidden');
+    showContentTagInput: function() {
+      this.contentTagVisible = true;
+      this.$nextTick(() => {
+        this.$refs.saveTagInput.$refs.input.focus();
+      });
+    },
+    addToContent: function() {
+      const inputValue = this.contentTag;
+      if (inputValue) {
+        this.nodeProp.data.content.push(inputValue);
+      }
+      this.contentTagVisible = false;
+      this.contentTag = null;
     },
     updateHierarchy: function() {
       const update = function(d, depth) {
@@ -476,6 +551,8 @@ export default {
         .nodeSize([25, maxLabelLength * 8]);
       // 布局
       this.root = tree(this.root);
+      // 删除选中点
+      this.svgGroup.selectAll('g.node .selectCircle').remove();
       /* 绘制节点 */
       const node = this.svgGroup.selectAll('g.node')
         .data(nodes, function(d) {
@@ -495,10 +572,7 @@ export default {
         .attr('r', 0);
       // 绘制初始文字
       nodeEnter.append('text')
-        .style('fill-opacity', 0)
-        .text(function(d) {
-          return d.data.name || d.data.type;
-        });
+        .style('fill-opacity', 0);
       // 绘制交互圈
       nodeEnter.filter(function(d) {
         return d.data.type !== 'content';
@@ -512,10 +586,19 @@ export default {
       // Update
       let nodeUpdate = nodeEnter.merge(node)
         .attr('class', function(d) {
-          return `node ${d.data.type} ${d._children ? 'collapsed' : ''}`;
+          return `node ${d.data.type}${d._children ? ' collapsed' : ''}`;
         });
+      // 绘制选中点
+      nodeUpdate.filter(function(d) {
+        return d === vue.nodeProp;
+      }).append('circle')
+        .attr('class', 'selectCircle')
+        .attr('r', 0.75);
       // 立即更新文字位置
       nodeUpdate.select('text')
+        .text(function(d) {
+          return d.data.name || d.data.type;
+        })
         .attr('x', function(d) {
           return d.children || d._children ? -8 : 8;
         })
@@ -598,7 +681,11 @@ export default {
     },
     // 将节点居中显示
     centerNode: function(node) {
-      this.zoomListener.translateTo(this.baseSvg.transition().duration(this.duration), node.y0, node.x0);
+      this.baseSvg.transition()
+        .duration(this.duration)
+        .call(this.zoomListener.translateTo, node.y0, node.x0)
+        .transition()
+        .call(this.zoomListener.scaleTo, 2);
     },
     // 缩放平移变换事件
     zoom: function() {
@@ -609,6 +696,11 @@ export default {
       const vue = this;
       const result = {};
       Object.assign(result, d.data);
+      for (const key in result) {
+        if (result[key] === null || result[key] === undefined || result[key] === '') {
+          delete result[key];
+        }
+      }
       const children = d.children || d._children;
       if (children) {
         result.children = [];
@@ -686,4 +778,16 @@ circle
 .activeDrag
   .ghostCircle
     display: none
+.el-tag + .el-tag
+  margin-left: 10px
+.button-new-tag
+  margin-left: 10px !important
+  height: 32px !important
+  line-height: 30px !important
+  padding-top: 0 !important
+  padding-bottom: 0 !important
+.input-new-tag
+  width: 90px !important
+  margin-left: 10px !important
+  vertical-align: bottom !important
 </style>
