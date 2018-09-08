@@ -14,23 +14,62 @@
             <ul class="nav nav-tabs card-header-tabs">
               <li class="nav-item">
                 <a
+                  id="tab-link-ist"
+                  href="#"
                   class="nav-link active"
-                  href="#">Interactive Syntax Tree</a>
+                  @click="linkISTClick">Interactive Syntax Tree</a>
               </li>
               <li class="nav-item">
                 <a
+                  id="tab-link-prop"
+                  href="#"
                   class="nav-link"
-                  href="#">Property Page</a>
+                  @click="linkPropClick">Property Page</a>
               </li>
             </ul>
           </div>
-          <div class="card-body">
+          <div
+            id="tab-ist"
+            class="card-body">
             <div class="button-group d-flex">
-              <a
-                href="#"
+              <button
                 class="btn btn-primary w-100"
-                @click="save">Generate Syntax Tree JSON</a>
+                @click="save">Generate Syntax Tree JSON</button>
             </div>
+          </div>
+          <div
+            id="tab-prop"
+            class="card-body"
+            hidden>
+            <form>
+              <div
+                v-if="nodeProp
+                  && (nodeProp.data.type == 'order'
+                  || nodeProp.data.type == 'pickone'
+                || nodeProp.data.type == 'exchangeable')"
+                class="form-group row">
+                <label
+                  for="nodeTypeSelect"
+                  class="col-form-label col-3">Type</label>
+                <select
+                  id="nodeTypeSelect"
+                  v-model="nodeProp.data.type"
+                  class="custom-select col-9">
+                  <option>order</option>
+                  <option>pickone</option>
+                  <option>exchangeable</option>
+                </select>
+              </div>
+              <div
+                v-if="nodeProp && nodeProp.data.type == 'content'"
+                class="form-group row">
+                <label
+                  for="nodeType"
+                  class="col-form-label col-3">Type</label>
+                <span class="col-form-label col-9">{{ nodeProp.data.type }}</span>
+              </div>
+            </form>
+            <div class="dropdown-divider" />
           </div>
         </div>
       </div>
@@ -86,8 +125,20 @@ export default {
 
       /* 动画 */
       // 动画时长
-      duration: 750
+      duration: 750,
+
+      /* 节点属性 */
+      nodeProp: null,
+      sss: 'exchangeable'
     };
+  },
+  watch: {
+    nodeProp: {
+      handler: function() {
+        this.update(this.root);
+      },
+      deep: true
+    }
   },
   mounted: function() {
     const vue = this;
@@ -198,6 +249,18 @@ export default {
     this.centerNode(this.root);
   },
   methods: {
+    linkISTClick: function() {
+      $('#tab-link-ist').addClass('active');
+      $('#tab-link-prop').removeClass('active');
+      $('#tab-ist').removeAttr('hidden');
+      $('#tab-prop').attr('hidden', 'hidden');
+    },
+    linkPropClick: function() {
+      $('#tab-link-ist').removeClass('active');
+      $('#tab-link-prop').addClass('active');
+      $('#tab-ist').attr('hidden', 'hidden');
+      $('#tab-prop').removeAttr('hidden');
+    },
     updateHierarchy: function() {
       const update = function(d, depth) {
         d.depth = depth;
@@ -361,6 +424,12 @@ export default {
       if (d3.event.defaultPrevented) {
         return;
       }
+      this.$set(this, 'nodeProp', d);
+    },
+    nodeDblClick: function(d) {
+      if (d3.event.defaultPrevented) {
+        return;
+      }
       if (d.children || d._children) {
         if (d.children) {
           d._children = d.children;
@@ -416,13 +485,11 @@ export default {
       const nodeEnter = node.enter()
         .append('g')
         .call(this.dragListener)
-        .attr('class', function(d) {
-          return `node ${d.data.type}`;
-        })
         .attr('transform', function() {
           return `translate(${source.y0}, ${source.x0})`;
         })
-        .on('dblclick', this.nodeClick);
+        .on('click', this.nodeClick)
+        .on('dblclick', this.nodeDblClick);
       // 绘制初始节点
       nodeEnter.append('circle')
         .attr('r', 0);
@@ -444,8 +511,8 @@ export default {
         .on('mouseout', this.ghostOut);
       // Update
       let nodeUpdate = nodeEnter.merge(node)
-        .classed('collapsed', function(d) {
-          return d._children;
+        .attr('class', function(d) {
+          return `node ${d.data.type} ${d._children ? 'collapsed' : ''}`;
         });
       // 立即更新文字位置
       nodeUpdate.select('text')
