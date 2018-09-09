@@ -5,7 +5,7 @@
         <!-- 左侧树图，占宽3/4 -->
         <el-col :span="18">
           <svg
-            height="90vh"
+            height="100vh"
             width="100%" />
         </el-col>
         <!-- 右侧控制面板，占宽1/4 -->
@@ -164,15 +164,14 @@
                         action="#"
                         multiple>
                         <i class="el-icon-upload"/>
-                        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                        <div class="el-upload__text">Drag and drop json files there, or <em>click</em> to upload</div>
                         <div
                           slot="tip"
-                          class="el-upload__tip">上传的文件会合并到根<el-button
+                          class="el-upload__tip">Tree will be merged to the root<el-button
                             style="margin-left: 10px;"
                             size="small"
                             type="success"
-                            @click="load">确认上传</el-button></div>
-
+                            @click="load">Load Syntax Tree JSON<i class="el-icon-upload2 el-icon--right"/></el-button></div>
                       </el-upload>
                     </el-col>
                   </el-row>
@@ -186,7 +185,7 @@
                     justify="center">
                     <el-button
                       type="primary"
-                      @click="load">Load Syntax Tree JSON<i class="el-icon-upload2 el-icon--right"/></el-button>
+                      @click="save">Download Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
                   </el-row>
                 </el-collapse-item>
               </el-collapse>
@@ -1058,6 +1057,10 @@ circle
 .activeDrag
   .ghostCircle
     display: none
-.el-tag + .el-tag
-  margin-left: 10px
+#app
+  .el-main
+    padding: 0 20px
+*
+  margin:0;
+  padding:0;
 </style>
