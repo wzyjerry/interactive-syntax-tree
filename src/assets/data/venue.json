@@ -2,126 +2,135 @@
     "type": "root",
     "children": [
         {
-            "type": "order",
-            "name": "ask_venue_root",
+            "type": "holder"
+        }, {
+            "type": "intent",
+            "name": "intent_venue",
+            "intent": "venue",
             "children": [
                 {
                     "type": "order",
-                    "name": "search_node",
-                    "children": [
-                        {
-                            "type": "content",
-                            "from_file": false,
-                            "dropout": 0.2,
-                            "content": [
-                                "给我",
-                                "想找",
-                                "想要",
-                                "想要找",
-                                "查",
-                                "查询",
-                                "检索",
-                                "显示",
-                                "展示",
-                                "查找"
-                            ]
-                        },
-                        {
-                            "type": "content",
-                            "from_file": false,
-                            "dropout": 0.3,
-                            "content": [
-                                "一些",
-                                "一组",
-                                "一批",
-                                "几个"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "pickone",
-                    "name": "ex_keyword_node",
+                    "name": "ask_venue_root",
                     "children": [
                         {
                             "type": "order",
+                            "name": "search_node",
                             "children": [
                                 {
                                     "type": "content",
                                     "from_file": false,
+                                    "dropout": 0.2,
                                     "content": [
-                                        "有关",
-                                        "关于"
-                                    ]
-                                },
-                                {
-                                    "type": "content",
-                                    "from_file": true,
-                                    "filename": "aminer_keywords_zh.txt",
-                                    "entity": "KEY",
-                                    "name": "keyword_node"
-                                },
-                                {
-                                    "type": "content",
-                                    "from_file": false,
-                                    "content": [
-                                        "方面",
-                                        "方向",
-                                        "领域"
+                                        "给我",
+                                        "想找",
+                                        "想要",
+                                        "想要找",
+                                        "查",
+                                        "查询",
+                                        "检索",
+                                        "显示",
+                                        "展示",
+                                        "查找"
                                     ]
                                 },
                                 {
                                     "type": "content",
                                     "from_file": false,
+                                    "dropout": 0.3,
                                     "content": [
-                                        "的"
+                                        "一些",
+                                        "一组",
+                                        "一批",
+                                        "几个"
                                     ]
                                 }
                             ]
                         },
                         {
-                            "type": "order",
+                            "type": "pickone",
+                            "name": "ex_keyword_node",
                             "children": [
                                 {
-                                    "type": "content",
-                                    "from_file": false,
-                                    "content": [
-                                        "和",
-                                        "与"
+                                    "type": "order",
+                                    "children": [
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "有关",
+                                                "关于"
+                                            ]
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": true,
+                                            "filename": "aminer_keywords_zh.txt",
+                                            "entity": "KEY",
+                                            "name": "keyword_node"
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "方面",
+                                                "方向",
+                                                "领域"
+                                            ]
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "的"
+                                            ]
+                                        }
                                     ]
                                 },
                                 {
-                                    "type": "content",
-                                    "from_file": true,
-                                    "filename": "aminer_keywords_zh.txt",
-                                    "entity": "KEY",
-                                    "name": "keyword_node"
-                                },
-                                {
-                                    "type": "content",
-                                    "from_file": false,
-                                    "content": [
-                                        "相关",
-                                        "有关"
-                                    ]
-                                },
-                                {
-                                    "type": "content",
-                                    "from_file": false,
-                                    "content": [
-                                        "的"
+                                    "type": "order",
+                                    "children": [
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "和",
+                                                "与"
+                                            ]
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": true,
+                                            "filename": "aminer_keywords_zh.txt",
+                                            "entity": "KEY",
+                                            "name": "keyword_node"
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "相关",
+                                                "有关"
+                                            ]
+                                        },
+                                        {
+                                            "type": "content",
+                                            "from_file": false,
+                                            "content": [
+                                                "的"
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
+                        },
+                        {
+                            "type": "content",
+                            "from_file": false,
+                            "content": [
+                                "期刊",
+                                "会议"
+                            ]
                         }
-                    ]
-                },
-                {
-                    "type": "content",
-                    "from_file": false,
-                    "content": [
-                        "期刊",
-                        "会议"
                     ]
                 }
             ]

@@ -2,14 +2,22 @@
   <el-container>
     <el-main>
       <el-row :gutter="20">
-        <!-- 左侧树图，占宽3/4 -->
-        <el-col :span="18">
+        <!-- 左侧树图 -->
+        <el-col
+          :xs="11"
+          :md="14"
+          :lg="17"
+          :xl="20">
           <svg
             height="100vh"
             width="100%" />
         </el-col>
-        <!-- 右侧控制面板，占宽1/4 -->
-        <el-col :span="6">
+        <!-- 右侧控制面板 -->
+        <el-col
+          :xs="13"
+          :md="10"
+          :lg="7"
+          :xl="4">
           <el-tabs
             v-model="tabs"
             type="border-card"
@@ -27,7 +35,7 @@
                     name="create"
                     title="Create Node">
                     <el-form
-                      label-width="80px">
+                      label-width="70px">
                       <el-row
                         type="flex"
                         justify="end">
@@ -202,8 +210,41 @@
               <el-scrollbar>
                 <el-form
                   class="tab-scroll"
-                  label-width="80px">
-                  <el-collapse :value="['common', 'advanced']">
+                  label-width="70px">
+                  <!-- 兴趣节点设置页 -->
+                  <el-collapse
+                    v-if="nodeProp.data.type === 'intent'"
+                    :value="'intent'">
+                    <el-collapse-item
+                      name="intent"
+                      title="Intent Settings">
+                      <el-form-item label="Type">
+                        <el-tag>{{ nodeProp.data.type }}</el-tag>
+                      </el-form-item>
+                      <el-form-item label="Name">
+                        <el-input
+                          v-model="nodeProp.data.name"
+                          placeholder="Name"
+                          clearable/>
+                      </el-form-item>
+                      <el-form-item label="Intent">
+                        <el-input
+                          v-model="nodeProp.data.intent"
+                          placeholder="Intent"
+                          clearable/>
+                      </el-form-item>
+                      <el-form-item label="Weight">
+                        <el-input-number
+                          v-model="nodeProp.data.weight"
+                          :precision="2"
+                          :step="0.01"
+                          :min="0"/>
+                      </el-form-item>
+                    </el-collapse-item>
+                  </el-collapse>
+                  <el-collapse
+                    v-else
+                    :value="['common', 'advanced']">
                     <!-- 通用设置 -->
                     <el-collapse-item
                       name="common"
@@ -213,8 +254,7 @@
                         v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
                         label="Type">
                         <el-radio-group
-                          v-model="nodeProp.data.type"
-                          size="small">
+                          v-model="nodeProp.data.type">
                           <el-radio-button label="order"/>
                           <el-radio-button label="pickone"/>
                           <el-radio-button label="exchangeable"/>
@@ -355,10 +395,13 @@ export default {
   data: function() {
     return {
       /* 数据 */
-      // 输入数据
-      data: null,
       // 布局数据
-      root: null,
+      root: {
+        'type': 'root',
+        'children': [{
+          'type': 'holder'
+        }]
+      },
       // 节点编号
       index: 0,
 
@@ -405,6 +448,11 @@ export default {
       uploadFiles: null
     };
   },
+  computed: {
+    holder: function() {
+      return this.root.children[0];
+    }
+  },
   watch: {
     nodeProp: {
       handler: function(val) {
@@ -441,9 +489,6 @@ export default {
     this.dragListener = d3.drag()
       // 标记拖拽开始
       .on('start', function(d) {
-        if (d === vue.root) {
-          return;
-        }
         vue.dragStarted = true;
         vue.dragNodes = d.descendants();
         // 阻止事件传播 https://stackoverflow.com/questions/10095979/d3-click-and-drag-event-nesting
@@ -451,9 +496,6 @@ export default {
       })
       // 拖拽中，处理镜头移动
       .on('drag', function(d) {
-        if (d === vue.root) {
-          return;
-        }
         if (vue.dragStarted) {
           vue.dragStart(d, this);
         }
@@ -491,8 +533,8 @@ export default {
         vue.updateTempConnector();
       })
       // 拖拽结束
-      .on('end', function(d) {
-        if (d === vue.root || vue.draggingNode === null) {
+      .on('end', function() {
+        if (vue.draggingNode === null) {
           return;
         }
         if (vue.selectedNode) {
@@ -524,12 +566,33 @@ export default {
         vue.dragEnd(vue.draggingNode.parent, this);
       });
     this.svgGroup = this.baseSvg.append('g');
-    this.data = venue_data;
-    this.hierarchy();
-    this.update(this.root);
-    this.centerNode(this.root);
+    this.root = d3.hierarchy(this.root);
+    // 设置根节点初始坐标
+    this.root.x0 = 0;
+    this.root.y0 = $(this.baseSvg.node()).width() / 2;
+    this.upload(this, venue_data);
+    this.$set(this, 'nodeProp', this.root);
   },
   methods: {
+    // 更新json
+    upload: function(vue, data) {
+      if (data.type === 'root' && data.children) {
+        data.children.forEach(function(child) {
+          if (child.type === 'holder') {
+            if (child.children) {
+              child.children.forEach(function(root) {
+                vue.addTree(root);
+              });
+            }
+          }
+          else if (child.type === 'intent') {
+            child.children.forEach(function(root) {
+              vue.addTree(root, child);
+            });
+          }
+        });
+      }
+    },
     // 更新文件列表
     onUpload: function(file, fileList) {
       this.uploadFiles = fileList;
@@ -537,18 +600,10 @@ export default {
     // 上传文件
     load: function() {
       if (this.uploadFiles) {
-        const vue = this;
         const loadFile = function(e) {
           try {
             const document = JSON.parse(e.target.result);
-            if (document.type !== 'root') {
-              vue.addTree(document);
-            }
-            else {
-              document.children.forEach(function(child) {
-                vue.addTree(child);
-              });
-            }
+            this.upload(this, document);
           }
           catch (err) {
             return;
@@ -565,15 +620,38 @@ export default {
         this.$refs.upload.clearFiles();
       }
     },
-    // 挂载新树到根
-    addTree: function(data) {
-      const node = d3.hierarchy(data);
-      node.parent = this.root;
+    // 挂载新树到指定intent
+    addTree: function(data, intent) {
+      let node = null;
       this.expand(this.root);
-      if (!this.root.children) {
-        this.root.children = [];
+      let parent = null;
+      this.root.children.forEach(function (child) {
+        if (intent && child.data.intent === intent.intent) {
+          parent = child;
+        }
+      });
+      if (intent) {
+        if (parent === null) {
+          const intent_data = {
+            'type': 'intent',
+            'name': intent.name,
+            'weight': intent.weight,
+            'children': [data]
+          };
+          node = d3.hierarchy(intent_data);
+          parent = this.root;
+        }
       }
-      this.root.children.push(node);
+      else {
+        parent = this.holder;
+        node = d3.hierarchy(data);
+      }
+      this.expand(parent);
+      node.parent = parent;
+      if (!parent.children) {
+        parent.children = [];
+      }
+      parent.children.push(node);
       this.updateHierarchy();
       this.$set(this, 'nodeProp', node);
     },
@@ -609,15 +687,7 @@ export default {
         'exchangeable': 3,
         'content': 4
       }) {
-        const node = d3.hierarchy(this.newNode);
-        node.parent = this.root;
-        node.depth = 1;
-        node.height = 0;
-        if (!this.root.children) {
-          this.root.children = [];
-        }
-        this.root.children.push(node);
-        this.$set(this, 'nodeProp', node);
+        this.addTree(this.newNode);
         this.newNode = { content: [] };
       }
     },
@@ -701,13 +771,6 @@ export default {
       // Exit
       link.exit()
         .remove();
-    },
-    // 计算层次化数据，供布局函数使用
-    hierarchy: function() {
-      this.root = d3.hierarchy(this.data);
-      // 设置根节点初始坐标
-      this.root.x0 = 0;
-      this.root.y0 = $(this.baseSvg.node()).width() / 2;
     },
     // 展开节点
     expand: function(d) {
@@ -813,11 +876,6 @@ export default {
       this.selectedNode = null;
       this.updateTempConnector();
     },
-    // 更新树数据
-    updateData: function() {
-      this.data = this.generateJSON(this.root);
-      this.hierarchy();
-    },
     // 更新树显示
     update: function(source) {
       // 保存外部this
@@ -846,7 +904,7 @@ export default {
       // Enter
       const nodeEnter = node.enter()
         .append('g')
-        .call(this.dragListener)
+        .call(vue.dragListener)
         .attr('transform', function() {
           return `translate(${source.y0}, ${source.x0})`;
         })
@@ -860,7 +918,7 @@ export default {
         .style('fill-opacity', 0);
       // 绘制交互圈
       nodeEnter.filter(function(d) {
-        return d.data.type !== 'content';
+        return d.data.type !== 'content' && d.data.type !== 'root';
       })
         .append('circle')
         .attr('class', 'ghostCircle')
@@ -879,6 +937,14 @@ export default {
       }).append('circle')
         .attr('class', 'selectCircle')
         .attr('r', 0.75);
+      // 删除部分点的拖动事件
+      nodeUpdate.filter(function(d) {
+        return d.data.type in {
+          'root': 1,
+          'holder': 2,
+          'intent': 3
+        };
+      }).on('.drag', null);
       // 立即更新文字位置
       nodeUpdate.select('text')
         .text(function(d) {
@@ -1016,32 +1082,41 @@ export default {
   vertical-align: bottom
 .tab-scroll
   max-height: calc(100vh - 74px)
+  padding-right: 10px
 .el-scrollbar__bar.is-horizontal
   display: none
 .overlay
   background-color: #EEE
 circle
   stroke-width: 1.5px
-.content
-  circle
-    fill: #DFF0D8
-    stroke: #5CB85C
 .root
+  circle
+    fill: #DCDFE6
+    stroke: #C0C4CC
+.holder
+  circle
+    fill: #E8D596
+    stroke: #D5A179
+.intent
   circle
     fill: #DCB5FF
     stroke: #BE77FF
-.pickone
-  circle
-    fill: #F2DEDE;
-    stroke: #D9534F
 .order
   circle
     fill: #D9EDF7;
     stroke: #5BC0DE
+.pickone
+  circle
+    fill: #F2DEDE;
+    stroke: #D9534F
 .exchangeable
   circle
     fill: #FCF8E3;
     stroke: #F0AD4E
+.content
+  circle
+    fill: #DFF0D8
+    stroke: #5CB85C
 .collapsed
   circle
     fill: #FFF
