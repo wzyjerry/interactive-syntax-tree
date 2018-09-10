@@ -17,178 +17,181 @@
             <!-- 菜单 -->
             <el-tab-pane name="menu">
               <span slot="label"><i class="el-icon-menu"/> Menu</span>
-              <el-collapse
-                accordion
-                value="download">
-                <!-- 创建节点 -->
-                <el-collapse-item
-                  name="create"
-                  title="Create Node">
-                  <el-form
-                    label-width="80px">
+              <el-scrollbar>
+                <el-collapse
+                  class="tab-scroll"
+                  accordion
+                  value="download">
+                  <!-- 创建节点 -->
+                  <el-collapse-item
+                    name="create"
+                    title="Create Node">
+                    <el-form
+                      label-width="80px">
+                      <el-row
+                        type="flex"
+                        justify="end">
+                        <el-col :span="23">
+                          <el-collapse :value="['common', 'advanced', 'create']">
+                            <!-- 通用设置 -->
+                            <el-collapse-item
+                              name="common"
+                              title="Common Settings">
+                              <!-- 节点类型 -->
+                              <el-form-item label="Type">
+                                <el-select
+                                  v-model="newNode.type"
+                                  placeholder="Type">
+                                  <el-option value="order"/>
+                                  <el-option value="pickone"/>
+                                  <el-option value="exchangeable"/>
+                                  <el-option value="content"/>
+                                </el-select>
+                              </el-form-item>
+                              <!-- 节点名称 -->
+                              <el-form-item label="Name">
+                                <el-input
+                                  v-model="newNode.name"
+                                  placeholder="Name"
+                                  clearable/>
+                              </el-form-item>
+                              <!-- 剪枝概率 -->
+                              <el-form-item label="Dropout">
+                                <el-slider
+                                  v-model="newNode.dropout"
+                                  :min="0"
+                                  :max="1"
+                                  :step="0.01"
+                                  show-input/>
+                              </el-form-item>
+                            </el-collapse-item>
+                            <!-- 存在节点类型：高级设置 -->
+                            <el-collapse-item
+                              v-if="newNode.type"
+                              name="advanced"
+                              title="Advanced Settings">
+                              <!-- 控制节点：节点权重 -->
+                              <el-form-item
+                                v-if="newNode.type in {'order':1, 'pickone':2, 'exchangeable':3}"
+                                label="Weight">
+                                <el-input-number
+                                  v-model="newNode.weight"
+                                  :precision="2"
+                                  :step="0.01"
+                                  :min="0"/>
+                              </el-form-item>
+                              <!-- 内容节点 -->
+                              <el-row v-if="newNode.type === 'content'">
+                                <!-- 来自文件 -->
+                                <el-form-item label="FromFile">
+                                  <el-switch v-model="newNode.from_file"/>
+                                </el-form-item>
+                                <!-- 来自文件：文件名 -->
+                                <el-form-item
+                                  v-if="newNode.from_file"
+                                  label="Filename">
+                                  <el-input
+                                    v-model="newNode.filename"
+                                    placeholder="Filename"
+                                    clearable/>
+                                </el-form-item>
+                                <!-- 不来自文件：内容 -->
+                                <el-form-item
+                                  v-else
+                                  label="Content">
+                                  <tag-editor :tags="newNode.content" />
+                                </el-form-item>
+                                <!-- 实体类型 -->
+                                <el-form-item
+                                  v-if="newNode.entity"
+                                  label="Entity">
+                                  <el-input
+                                    v-model="newNode.entity"
+                                    placeholder="Entity"
+                                    clearable/>
+                                </el-form-item>
+                                <!-- 缺字概率 -->
+                                <el-form-item label="Cut">
+                                  <el-slider
+                                    v-model="newNode.cut"
+                                    :min="0"
+                                    :max="1"
+                                    :step="0.01"
+                                    show-input/>
+                                </el-form-item>
+                                <!-- 缺字概率>0：单字缺字概率 -->
+                                <el-form-item
+                                  v-if="newNode.cut && newNode.cut>0"
+                                  label="WordCut">
+                                  <el-slider
+                                    v-model="newNode.word_cut"
+                                    :min="0"
+                                    :max="1"
+                                    :step="0.01"
+                                    show-input/>
+                                </el-form-item>
+                              </el-row>
+                            </el-collapse-item>
+                            <!-- 添加节点 -->
+                            <el-collapse-item
+                              v-if="newNode.type"
+                              name="create"
+                              title="Create Node">
+                              <el-row
+                                type="flex"
+                                justify="center">
+                                <el-button
+                                  type="success"
+                                  @click="createNode">Create<i class="el-icon-success el-icon--right"/></el-button>
+                              </el-row>
+                            </el-collapse-item>
+                          </el-collapse>
+                      </el-col></el-row>
+                    </el-form>
+                  </el-collapse-item>
+                  <!-- 上传JSON -->
+                  <el-collapse-item
+                    name="upload"
+                    title="Upload JSON">
                     <el-row
                       type="flex"
-                      justify="end">
-                      <el-col :span="23">
-                        <el-collapse :value="['common', 'advanced', 'create']">
-                          <!-- 通用设置 -->
-                          <el-collapse-item
-                            name="common"
-                            title="Common Settings">
-                            <!-- 节点类型 -->
-                            <el-form-item label="Type">
-                              <el-select
-                                v-model="newNode.type"
-                                placeholder="Type">
-                                <el-option value="order"/>
-                                <el-option value="pickone"/>
-                                <el-option value="exchangeable"/>
-                                <el-option value="content"/>
-                              </el-select>
-                            </el-form-item>
-                            <!-- 节点名称 -->
-                            <el-form-item label="Name">
-                              <el-input
-                                v-model="newNode.name"
-                                placeholder="Name"
-                                clearable/>
-                            </el-form-item>
-                            <!-- 剪枝概率 -->
-                            <el-form-item label="Dropout">
-                              <el-slider
-                                v-model="newNode.dropout"
-                                :min="0"
-                                :max="1"
-                                :step="0.01"
-                                show-input/>
-                            </el-form-item>
-                          </el-collapse-item>
-                          <!-- 存在节点类型：高级设置 -->
-                          <el-collapse-item
-                            v-if="newNode.type"
-                            name="advanced"
-                            title="Advanced Settings">
-                            <!-- 控制节点：节点权重 -->
-                            <el-form-item
-                              v-if="newNode.type in {'order':1, 'pickone':2, 'exchangeable':3}"
-                              label="Weight">
-                              <el-input-number
-                                v-model="newNode.weight"
-                                :precision="2"
-                                :step="0.01"
-                                :min="0"/>
-                            </el-form-item>
-                            <!-- 内容节点 -->
-                            <el-row v-if="newNode.type === 'content'">
-                              <!-- 来自文件 -->
-                              <el-form-item label="FromFile">
-                                <el-switch v-model="newNode.from_file"/>
-                              </el-form-item>
-                              <!-- 来自文件：文件名 -->
-                              <el-form-item
-                                v-if="newNode.from_file"
-                                label="Filename">
-                                <el-input
-                                  v-model="newNode.filename"
-                                  placeholder="Filename"
-                                  clearable/>
-                              </el-form-item>
-                              <!-- 不来自文件：内容 -->
-                              <el-form-item
-                                v-else
-                                label="Content">
-                                <tag-editor :tags="newNode.content" />
-                              </el-form-item>
-                              <!-- 实体类型 -->
-                              <el-form-item
-                                v-if="newNode.entity"
-                                label="Entity">
-                                <el-input
-                                  v-model="newNode.entity"
-                                  placeholder="Entity"
-                                  clearable/>
-                              </el-form-item>
-                              <!-- 缺字概率 -->
-                              <el-form-item label="Cut">
-                                <el-slider
-                                  v-model="newNode.cut"
-                                  :min="0"
-                                  :max="1"
-                                  :step="0.01"
-                                  show-input/>
-                              </el-form-item>
-                              <!-- 缺字概率>0：单字缺字概率 -->
-                              <el-form-item
-                                v-if="newNode.cut && newNode.cut>0"
-                                label="WordCut">
-                                <el-slider
-                                  v-model="newNode.word_cut"
-                                  :min="0"
-                                  :max="1"
-                                  :step="0.01"
-                                  show-input/>
-                              </el-form-item>
-                            </el-row>
-                          </el-collapse-item>
-                          <!-- 添加节点 -->
-                          <el-collapse-item
-                            v-if="newNode.type"
-                            name="create"
-                            title="Create Node">
-                            <el-row
-                              type="flex"
-                              justify="center">
-                              <el-button
-                                type="success"
-                                @click="createNode">Create<i class="el-icon-success el-icon--right"/></el-button>
-                            </el-row>
-                          </el-collapse-item>
-                        </el-collapse>
-                    </el-col></el-row>
-                  </el-form>
-                </el-collapse-item>
-                <!-- 上传JSON -->
-                <el-collapse-item
-                  name="upload"
-                  title="Upload JSON">
-                  <el-row
-                    type="flex"
-                    justify="center">
-                    <el-col :span="22">
-                      <el-upload
-                        ref="upload"
-                        :on-change="onUpload"
-                        :auto-upload="false"
-                        class="upload-demo"
-                        drag
-                        action="#"
-                        multiple>
-                        <i class="el-icon-upload"/>
-                        <div class="el-upload__text">Drag and drop json files there, or <em>click</em> to upload</div>
-                        <div
-                          slot="tip"
-                          class="el-upload__tip">Tree will be merged to the root<el-button
-                            style="margin-left: 10px;"
-                            size="small"
-                            type="success"
-                            @click="load">Load Syntax Tree JSON<i class="el-icon-upload2 el-icon--right"/></el-button></div>
-                      </el-upload>
-                    </el-col>
-                  </el-row>
-                </el-collapse-item>
-                <!-- 下载JSON -->
-                <el-collapse-item
-                  name="download"
-                  title="Download JSON">
-                  <el-row
-                    type="flex"
-                    justify="center">
-                    <el-button
-                      type="primary"
-                      @click="save">Download Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
-                  </el-row>
-                </el-collapse-item>
-              </el-collapse>
+                      justify="center">
+                      <el-col :span="22">
+                        <el-upload
+                          ref="upload"
+                          :on-change="onUpload"
+                          :auto-upload="false"
+                          class="upload-demo"
+                          drag
+                          action="#"
+                          multiple>
+                          <i class="el-icon-upload"/>
+                          <div class="el-upload__text">Drag and drop json files there, or <em>click</em> to upload</div>
+                          <div
+                            slot="tip"
+                            class="el-upload__tip">Tree will be merged to the root<el-button
+                              style="margin-left: 10px;"
+                              size="small"
+                              type="success"
+                              @click="load">Load Syntax Tree JSON<i class="el-icon-upload2 el-icon--right"/></el-button></div>
+                        </el-upload>
+                      </el-col>
+                    </el-row>
+                  </el-collapse-item>
+                  <!-- 下载JSON -->
+                  <el-collapse-item
+                    name="download"
+                    title="Download JSON">
+                    <el-row
+                      type="flex"
+                      justify="center">
+                      <el-button
+                        type="primary"
+                        @click="save">Download Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
+                    </el-row>
+                  </el-collapse-item>
+                </el-collapse>
+              </el-scrollbar>
             </el-tab-pane>
             <!-- 选中节点设置 -->
             <el-tab-pane
@@ -196,140 +199,143 @@
               closable
               name="setting">
               <span slot="label"><i class="el-icon-setting"/> Setting</span>
-              <el-form
-                label-width="80px">
-                <el-collapse :value="['common', 'advanced']">
-                  <!-- 通用设置 -->
-                  <el-collapse-item
-                    name="common"
-                    title="Common Settings">
-                    <!-- 控制节点：节点类型 -->
-                    <el-form-item
-                      v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
-                      label="Type">
-                      <el-radio-group
-                        v-model="nodeProp.data.type"
-                        size="small">
-                        <el-radio-button label="order"/>
-                        <el-radio-button label="pickone"/>
-                        <el-radio-button label="exchangeable"/>
-                      </el-radio-group>
-                    </el-form-item>
-                    <!-- 内容节点：节点类型 -->
-                    <el-form-item
-                      v-if="nodeProp.data.type == 'content'"
-                      label="Type">
-                      <el-tag>{{ nodeProp.data.type }}</el-tag>
-                    </el-form-item>
-                    <!-- 节点名称 -->
-                    <el-form-item label="Name">
-                      <el-input
-                        v-model="nodeProp.data.name"
-                        placeholder="Name"
-                        clearable/>
-                    </el-form-item>
-                    <!-- 剪枝概率 -->
-                    <el-form-item label="Dropout">
-                      <el-slider
-                        v-model="nodeProp.data.dropout"
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        show-input/>
-                    </el-form-item>
-                  </el-collapse-item>
-                  <!-- 高级设置 -->
-                  <el-collapse-item
-                    name="advanced"
-                    title="Advanced Settings">
-                    <!-- 控制节点：节点权重 -->
-                    <el-form-item
-                      v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
-                      label="Weight">
-                      <el-input-number
-                        v-model="nodeProp.data.weight"
-                        :precision="2"
-                        :step="0.01"
-                        :min="0"/>
-                    </el-form-item>
-                    <!-- 内容节点 -->
-                    <el-row v-if="nodeProp.data.type === 'content'">
-                      <!-- 来自文件 -->
-                      <el-form-item label="FromFile">
-                        <el-switch v-model="nodeProp.data.from_file"/>
-                      </el-form-item>
-                      <!-- 来自文件：文件名 -->
+              <el-scrollbar>
+                <el-form
+                  class="tab-scroll"
+                  label-width="80px">
+                  <el-collapse :value="['common', 'advanced']">
+                    <!-- 通用设置 -->
+                    <el-collapse-item
+                      name="common"
+                      title="Common Settings">
+                      <!-- 控制节点：节点类型 -->
                       <el-form-item
-                        v-if="nodeProp.data.from_file"
-                        label="Filename">
+                        v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
+                        label="Type">
+                        <el-radio-group
+                          v-model="nodeProp.data.type"
+                          size="small">
+                          <el-radio-button label="order"/>
+                          <el-radio-button label="pickone"/>
+                          <el-radio-button label="exchangeable"/>
+                        </el-radio-group>
+                      </el-form-item>
+                      <!-- 内容节点：节点类型 -->
+                      <el-form-item
+                        v-if="nodeProp.data.type == 'content'"
+                        label="Type">
+                        <el-tag>{{ nodeProp.data.type }}</el-tag>
+                      </el-form-item>
+                      <!-- 节点名称 -->
+                      <el-form-item label="Name">
                         <el-input
-                          v-model="nodeProp.data.filename"
-                          placeholder="Filename"
+                          v-model="nodeProp.data.name"
+                          placeholder="Name"
                           clearable/>
                       </el-form-item>
-                      <!-- 不来自文件：内容 -->
-                      <el-form-item
-                        v-else
-                        label="Content">
-                        <tag-editor :tags="nodeProp.data.content" />
-                      </el-form-item>
-                      <!-- 实体类型 -->
-                      <el-form-item
-                        v-if="nodeProp.data.entity"
-                        label="Entity">
-                        <el-input
-                          v-model="nodeProp.data.entity"
-                          placeholder="Entity"
-                          clearable/>
-                      </el-form-item>
-                      <!-- 缺字概率 -->
-                      <el-form-item label="Cut">
+                      <!-- 剪枝概率 -->
+                      <el-form-item label="Dropout">
                         <el-slider
-                          v-model="nodeProp.data.cut"
+                          v-model="nodeProp.data.dropout"
                           :min="0"
                           :max="1"
                           :step="0.01"
                           show-input/>
                       </el-form-item>
-                      <!-- 缺字概率>0：单字缺字概率 -->
+                    </el-collapse-item>
+                    <!-- 高级设置 -->
+                    <el-collapse-item
+                      name="advanced"
+                      title="Advanced Settings">
+                      <!-- 控制节点：节点权重 -->
                       <el-form-item
-                        v-if="nodeProp.data.cut && nodeProp.data.cut>0"
-                        label="WordCut">
-                        <el-slider
-                          v-model="nodeProp.data.word_cut"
-                          :min="0"
-                          :max="1"
+                        v-if="nodeProp.data.type in {'order':1, 'pickone':2, 'exchangeable':3}"
+                        label="Weight">
+                        <el-input-number
+                          v-model="nodeProp.data.weight"
+                          :precision="2"
                           :step="0.01"
-                          show-input/>
+                          :min="0"/>
                       </el-form-item>
-                    </el-row>
-                  </el-collapse-item>
-                  <!-- 复制子树 -->
-                  <el-collapse-item
-                    name="copy"
-                    title="Copy Tree">
-                    <el-row
-                      type="flex"
-                      justify="center">
-                      <el-button
-                        type="warning"
-                        @click="copyTree">Copy<i class="el-icon-info el-icon--right"/></el-button>
-                    </el-row>
-                  </el-collapse-item>
-                  <!-- 删除节点 -->
-                  <el-collapse-item
-                    name="delete"
-                    title="Delete Node">
-                    <el-row
-                      type="flex"
-                      justify="center">
-                      <el-button
-                        type="danger"
-                        @click="deleteNode">Delete<i class="el-icon-warning el-icon--right"/></el-button>
-                    </el-row>
-                  </el-collapse-item>
-                </el-collapse>
-              </el-form>
+                      <!-- 内容节点 -->
+                      <el-row v-if="nodeProp.data.type === 'content'">
+                        <!-- 来自文件 -->
+                        <el-form-item label="FromFile">
+                          <el-switch v-model="nodeProp.data.from_file"/>
+                        </el-form-item>
+                        <!-- 来自文件：文件名 -->
+                        <el-form-item
+                          v-if="nodeProp.data.from_file"
+                          label="Filename">
+                          <el-input
+                            v-model="nodeProp.data.filename"
+                            placeholder="Filename"
+                            clearable/>
+                        </el-form-item>
+                        <!-- 不来自文件：内容 -->
+                        <el-form-item
+                          v-else
+                          label="Content">
+                          <tag-editor :tags="nodeProp.data.content" />
+                        </el-form-item>
+                        <!-- 实体类型 -->
+                        <el-form-item
+                          v-if="nodeProp.data.entity"
+                          label="Entity">
+                          <el-input
+                            v-model="nodeProp.data.entity"
+                            placeholder="Entity"
+                            clearable/>
+                        </el-form-item>
+                        <!-- 缺字概率 -->
+                        <el-form-item label="Cut">
+                          <el-slider
+                            v-model="nodeProp.data.cut"
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            show-input/>
+                        </el-form-item>
+                        <!-- 缺字概率>0：单字缺字概率 -->
+                        <el-form-item
+                          v-if="nodeProp.data.cut && nodeProp.data.cut>0"
+                          label="WordCut">
+                          <el-slider
+                            v-model="nodeProp.data.word_cut"
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            show-input/>
+                        </el-form-item>
+                      </el-row>
+                    </el-collapse-item>
+                    <!-- 复制子树 -->
+                    <el-collapse-item
+                      name="copy"
+                      title="Copy Tree">
+                      <el-row
+                        type="flex"
+                        justify="center">
+                        <el-button
+                          type="warning"
+                          @click="copyTree">Copy<i class="el-icon-info el-icon--right"/></el-button>
+                      </el-row>
+                    </el-collapse-item>
+                    <!-- 删除节点 -->
+                    <el-collapse-item
+                      name="delete"
+                      title="Delete Node">
+                      <el-row
+                        type="flex"
+                        justify="center">
+                        <el-button
+                          type="danger"
+                          @click="deleteNode">Delete<i class="el-icon-warning el-icon--right"/></el-button>
+                      </el-row>
+                    </el-collapse-item>
+                  </el-collapse>
+                </el-form>
+              </el-scrollbar>
             </el-tab-pane>
           </el-tabs>
         </el-col>
@@ -1004,6 +1010,14 @@ export default {
 </script>
 
 <style lang="stylus">
+*
+  margin:0
+  padding:0
+  vertical-align: bottom
+.tab-scroll
+  max-height: calc(100vh - 74px)
+.el-scrollbar__bar.is-horizontal
+  display: none
 .overlay
   background-color: #EEE
 circle
@@ -1060,7 +1074,4 @@ circle
 #app
   .el-main
     padding: 0 20px
-*
-  margin:0;
-  padding:0;
 </style>
