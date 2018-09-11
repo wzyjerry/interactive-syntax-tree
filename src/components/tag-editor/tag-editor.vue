@@ -1,5 +1,5 @@
 <template>
-  <el-row>
+  <span>
     <el-tag
       v-for="tag in tags"
       :key="tag"
@@ -22,23 +22,20 @@
       class="button-new-tag"
       size="small"
       @click="showInput">+ New Tag</el-button>
-  </el-row>
+  </span>
 </template>
-<style>
-  .el-tag {
-    margin-right: 10px;
-  }
-  .button-new-tag {
-    height: 32px;
-    line-height: 30px;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-  .input-new-tag {
-    width: 90px;
-    margin-right: 10px;
-    vertical-align: bottom;
-  }
+<style lang="stylus" scoped>
+.el-tag
+  margin-right 10px
+.button-new-tag
+  height 32px
+  line-height 30px
+  padding-top 0
+  padding-bottom 0
+.input-new-tag
+  width 90px
+  margin-right 10px
+  vertical-align bottom
 </style>
 <script>
 export default {

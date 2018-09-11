@@ -2,7 +2,7 @@
 
 交互语法树
 
-项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.3.0 [完成节点CURD]
+项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.5.0 [代码重构]
 
 ---
 ## 定义
@@ -24,10 +24,10 @@
           "type": "root",
           "children": [
             {
-              "type": "holder"
+              "type": "holder",
               "children": []
             }, {
-              "name": "ask_venue_root",
+              "type": "intent",
               "intent": "搜会议",
               "weight": 0.25,
               "children": []
@@ -61,7 +61,7 @@
     + 样例：
         ``` json
         {
-          "name": "ask_venue_root",
+          "type": "intent",
           "intent": "搜会议",
           "weight": 0.25,
           "children": []

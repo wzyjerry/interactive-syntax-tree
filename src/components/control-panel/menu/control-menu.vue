@@ -1,0 +1,60 @@
+<template>
+  <el-collapse
+    class="tab-scroll"
+    accordion
+    value="download">
+    <!-- 创建节点 -->
+    <el-collapse-item
+      name="create"
+      title="Create Node">
+      <control-menu-create @create="createNode" />
+    </el-collapse-item>
+    <!-- 上传JSON -->
+    <el-collapse-item
+      name="upload"
+      title="Upload JSON">
+      <control-menu-upload @upload="upload" />
+    </el-collapse-item>
+    <!-- 下载JSON -->
+    <el-collapse-item
+      name="download"
+      title="Download JSON">
+      <el-row
+        type="flex"
+        justify="center">
+        <el-button
+          type="primary"
+          @click="download">Download Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
+      </el-row>
+    </el-collapse-item>
+  </el-collapse>
+</template>
+
+<script>
+import ControlMenuCreate from './control-menu-create';
+import ControlMenuUpload from './control-menu-upload';
+
+export default {
+  name: 'ControlMenu',
+  components: {
+    ControlMenuCreate: ControlMenuCreate,
+    ControlMenuUpload: ControlMenuUpload
+  },
+  data: function() {
+    return {
+      newNode: {}
+    };
+  },
+  methods: {
+    createNode: function(newNode) {
+      this.$emit('createNode', newNode);
+    },
+    download: function() {
+      this.$emit('download');
+    },
+    upload: function(data) {
+      this.$emit('upload', data);
+    }
+  }
+};
+</script>
