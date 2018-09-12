@@ -12,6 +12,7 @@ function generateTree(d) {
       delete result[key];
     }
   }
+  delete result.children;
   const children = d.children || d._children;
   if (children) {
     result.children = [];
