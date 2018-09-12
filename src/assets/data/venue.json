@@ -5,7 +5,7 @@
             "type": "holder"
         }, {
             "type": "intent",
-            "name": "intent_venue",
+            "weight": 1.0,
             "intent": "venue",
             "children": [
                 {

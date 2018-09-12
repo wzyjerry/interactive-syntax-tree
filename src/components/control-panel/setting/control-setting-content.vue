@@ -1,6 +1,6 @@
 <template>
   <el-collapse
-    :value="['common', 'advanced']">
+    :value="['common', 'content']">
     <!-- 通用设置 -->
     <el-collapse-item
       name="common"
@@ -29,11 +29,20 @@
           :step="0.01"
           show-input/>
       </el-form-item>
+      <!-- 节点权重 -->
+      <el-form-item
+        label="Weight">
+        <el-input-number
+          v-model="selectedNode.data.weight"
+          :precision="2"
+          :step="0.01"
+          :min="0"/>
+      </el-form-item>
     </el-collapse-item>
-    <!-- 高级设置 -->
+    <!-- 内容设置 -->
     <el-collapse-item
-      name="advanced"
-      title="Advanced Settings">
+      name="content"
+      title="Content Settings">
       <!-- 来自文件 -->
       <el-form-item label="FromFile">
         <el-switch v-model="selectedNode.data.from_file"/>

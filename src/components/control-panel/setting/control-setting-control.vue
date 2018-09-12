@@ -1,6 +1,6 @@
 <template>
   <el-collapse
-    :value="['common', 'advanced']">
+    :value="['common']">
     <!-- 通用设置 -->
     <el-collapse-item
       name="common"
@@ -41,11 +41,6 @@
           :step="0.01"
           show-input/>
       </el-form-item>
-    </el-collapse-item>
-    <!-- 高级设置 -->
-    <el-collapse-item
-      name="advanced"
-      title="Advanced Settings">
       <!-- 节点权重 -->
       <el-form-item
         label="Weight">
