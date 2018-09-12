@@ -70,7 +70,7 @@
 3. 语法树包含控制节点
     + 说明：控制节点用于控制模拟器行为
     + 定义：
-        * "type": < "pickone" | "order: | "exchangeable" >
+        * "type": <"pickone"|"order"|"exchangeable">
             - pickone：选择节点，模拟器从子节点中选择一个节点生成内容
             - order：顺序节点，模拟器按顺序产生每个子节点内容，顺序连接。
             - exchangeable：可换节点，模拟器按顺序产生每个子节点内容，shuffle这些内容后连接。
