@@ -38,6 +38,9 @@
                     prop="data.intent"
                     label="Intent" />
                   <el-table-column
+                    prop="data.dropout"
+                    label="Dropout" />
+                  <el-table-column
                     prop="data.weight"
                     label="Weight" />
                   <el-table-column
@@ -70,6 +73,16 @@
                     v-model="intent.intent"
                     placeholder="Intent"/>
                 </el-form-item>
+                <!-- 剪枝概率 -->
+                <el-form-item label="Dropout">
+                  <el-slider
+                    v-model="intent.dropout"
+                    :min="0"
+                    :max="1"
+                    :step="0.01"
+                    show-input/>
+                </el-form-item>
+                <!-- 权重 -->
                 <el-form-item label="Weight">
                   <el-input-number
                     v-model="intent.weight"
