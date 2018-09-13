@@ -73,15 +73,6 @@
                     v-model="intent.intent"
                     placeholder="Intent"/>
                 </el-form-item>
-                <!-- 剪枝概率 -->
-                <el-form-item label="Dropout">
-                  <el-slider
-                    v-model="intent.dropout"
-                    :min="0"
-                    :max="1"
-                    :step="0.01"
-                    show-input/>
-                </el-form-item>
                 <!-- 权重 -->
                 <el-form-item label="Weight">
                   <el-input-number

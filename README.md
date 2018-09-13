@@ -2,7 +2,7 @@
 
 交互语法树
 
-项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.7.0 [兴趣节点添加剪枝概率]
+项目部署在[GitPage](https://wzyjerry.github.io/interactive-syntax-tree/dist/#/), 版本号0.7.0 [删除兴趣节点剪枝概率]
 
 ---
 ## 定义
@@ -55,7 +55,6 @@
         * "type": "intent"
         * "intent": 对应语法树生成句子的意图
         * "weight": 以多大权重生成对应语法的句子。默认值为1.0
-        * "dropout": （可选）模拟器生成内容时以多大概率剪枝。[0, 1]，默认值为0
         * "children": 规则节点的集合
     + 节点颜色：紫色
     + 约束：一棵语法树包含的意图互不相同
