@@ -35,6 +35,21 @@ function updateHierachy(d, depth) {
 export default function (source) {
   let root = states.root;
   updateHierachy(root, 0);
+  const baseSvg = states.baseSvg;
+  baseSvg.append('svg:defs').selectAll('marker')
+    .data(['arrow'])
+    .enter()
+    .append('svg:marker')
+    .attr('id', String)
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 15)
+    .attr('refY', -1.5)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('svg:path')
+    .attr('d', 'M0,-5L10,0L0,5');
+
   const svgGroup = states.svgGroup;
   const duration = states.duration;
   // 获取节点数组和边数组
@@ -141,7 +156,23 @@ export default function (source) {
   // 隐藏文字
   nodeExit.select('text')
     .style('fill-opacity', 0);
-
+  /* 绘制提示线 */
+  svgGroup.selectAll('path.tipLink').remove();
+  const tipLink = svgGroup.selectAll('path.tipLink')
+    .data(states.route, 0);
+  const tipLinkEnter = tipLink.enter()
+    .insert('path', 'g')
+    .attr('class', 'tipLink')
+    .attr('d', 'M0,0A0,0 0 0,1 0,0');
+  tipLinkEnter.merge(tipLink)
+    .attr('d',  function(d) {
+      const dx = d.target.x - d.source.x,
+        dy = d.target.y - d.source.y,
+        dr = Math.sqrt((dx * dx) + (dy * dy));
+      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+    })
+    .attr('marker-end', 'url(#arrow)');
+    
   /* 绘制边 */
   const link = svgGroup.selectAll('path.link')
     .data(links, function(d) {
@@ -153,12 +184,12 @@ export default function (source) {
     .attr('class', 'link')
     .attr('d', function() {
       const pos = {
-        'x': source.x0,
-        'y': source.y0
+        x: source.x0,
+        y: source.y0
       };
       return linkGenerator({
-        'source': pos,
-        'target': pos
+        source: pos,
+        target: pos
       });
     });
   // Update
@@ -172,12 +203,12 @@ export default function (source) {
     .duration(duration)
     .attr('d', function() {
       const pos = {
-        'x': source.x,
-        'y': source.y
+        x: source.x,
+        y: source.y
       };
       return linkGenerator({
-        'source': pos,
-        'target': pos
+        source: pos,
+        target: pos
       });
     })
     .remove();

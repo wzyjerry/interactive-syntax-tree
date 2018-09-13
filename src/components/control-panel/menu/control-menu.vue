@@ -27,6 +27,30 @@
           @click="download">Download Syntax Tree JSON<i class="el-icon-download el-icon--right"/></el-button>
       </el-row>
     </el-collapse-item>
+    <!-- Debug Mode -->
+    <el-collapse-item
+      name="debug"
+      title="Debug Mode(DEMO)">
+      <el-row
+        type="flex"
+        justify="end">
+        <el-col :span="23">
+          <el-form label-position="top">
+            <el-form-item label="Debug">
+              <el-switch
+                v-model="debug"
+                @change="toggleDebug" />
+            </el-form-item>
+            <el-form-item label="Tree">
+              <control-menu-upload @upload="upload" />
+            </el-form-item>
+            <el-form-item label="Sentence">
+              <control-menu-upload @upload="uploadSentence" />
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+    </el-collapse-item>
   </el-collapse>
 </template>
 
@@ -42,10 +66,14 @@ export default {
   },
   data: function() {
     return {
-      newNode: {}
+      newNode: {},
+      debug: false
     };
   },
   methods: {
+    toggleDebug: function() {
+      this.$emit('toggleDebug', this.debug);
+    },
     createNode: function(newNode) {
       this.$emit('createNode', newNode);
     },
@@ -54,6 +82,9 @@ export default {
     },
     upload: function(data) {
       this.$emit('upload', data);
+    },
+    uploadSentence: function(data) {
+      this.$emit('uploadSentence', data);
     }
   }
 };

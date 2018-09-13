@@ -9,8 +9,10 @@
       <el-scrollbar>
         <control-menu
           class="tab-scroll"
+          @toggleDebug="toggleDebug"
           @createNode="createNode"
           @upload="upload"
+          @uploadSentence="uploadSentence"
           @download="download" />
       </el-scrollbar>
     </el-tab-pane>
@@ -46,6 +48,10 @@ export default {
     selectedNode: {
       type: Object,
       default: undefined
+    },
+    debug: {
+      type: Boolean,
+      default: false
     }
   },
   data: function() {
@@ -55,6 +61,9 @@ export default {
     };
   },
   methods: {
+    toggleDebug: function(debug) {
+      this.$emit('toggleDebug', debug);
+    },
     changeIntent: function() {
       this.$emit('changeIntent');
     },
@@ -73,6 +82,9 @@ export default {
     },
     upload: function(data) {
       this.$emit('upload', data);
+    },
+    uploadSentence: function(data) {
+      this.$emit('uploadSentence', data);
     },
     download: function() {
       this.$emit('download');

@@ -1,7 +1,8 @@
 <template>
   <svg
+    id="d3-tree-overlay"
     :width="width"
-    :height="height"/>
+    :height="height" />
 </template>
 <script>
 import * as d3 from 'd3';
@@ -11,6 +12,7 @@ import { default as click, clickCallBack, unclick } from './listener/click';
 import update from './utils/update';
 import expand from './utils/expand';
 import generateJSON from './utils/generateJSON';
+import { default as traceroute, getLink } from './utils/traceroute';
 
 export default {
   name: 'D3Tree',
@@ -42,8 +44,7 @@ export default {
     }
   },
   mounted: function() {
-    states.baseSvg = d3.select('svg')
-      .attr('id', 'd3-tree-overlay');
+    states.baseSvg = d3.select('#d3-tree-overlay');
     states.svgGroup = states.baseSvg.append('g');
     states.baseSvg.call(zoomListener)
       .on('dblclick.zoom', null);
@@ -107,6 +108,15 @@ export default {
         }
       }
       click(parent);
+    },
+    mouseover: function(data, index) {
+      states.route = getLink(traceroute(states.root, data, index));
+      console.log(states.route);
+      update(this.route);
+    },
+    mouseout: function() {
+      states.route = [];
+      update(this.route);
     }
   }
 };
@@ -114,7 +124,7 @@ export default {
 
 <style lang="stylus">
 #d3-tree-overlay
-  background-color #EEE
+  background-color #DDD
 circle
   stroke-width 1.5px
 .root
@@ -161,6 +171,11 @@ circle
   stroke #555
   stroke-width 1.5px
   stroke-opacity 0.4
+.tipLink
+  fill none
+  stroke red
+  stroke-width 1.5px
+  stroke-opacity 1
 .tempLink
   fill none
   stroke red

@@ -10,10 +10,17 @@
           :xl="18">
           <d3-tree
             ref="tree"
-            :height="'100vh'"
+            :height="height"
             :width="'100%'"
             @onClick="onClick"
             @showSetting="showSetting" />
+          <sentence-tree
+            v-if="debug"
+            ref="sentence"
+            :height="'30vh'"
+            :width="'100%'"
+            @mouseover="mouseover"
+            @mouseout="mouseout" />
         </el-col>
         <!-- 右侧控制面板 -->
         <el-col
@@ -24,11 +31,13 @@
           <control-panel
             ref="control"
             :selected-node="selectedNode"
+            @toggleDebug="toggleDebug"
             @changeIntent="changeIntent"
             @appendIntent="appendIntent"
             @unclick="unclick"
             @createNode="createNode"
             @upload="upload"
+            @uploadSentence="uploadSentence"
             @download="download"
             @copyTree="copyTree"
             @deleteNode="deleteNode" />
@@ -40,20 +49,33 @@
 
 <script>
 import D3Tree from './d3-tree/d3-tree';
+import SentenceTree from './sentence-tree/sentence-tree';
 import ControlPanel from './control-panel/control-panel';
 
 export default {
   name: 'InteractiveSyntaxTree',
   components: {
     D3Tree: D3Tree,
+    SentenceTree: SentenceTree,
     ControlPanel: ControlPanel
   },
   data: function() {
     return {
-      selectedNode: undefined
+      selectedNode: undefined,
+      height: '100vh',
+      debug: false
     };
   },
   methods: {
+    toggleDebug: function(debug) {
+      this.debug = debug;
+      if (debug) {
+        this.height = '70vh';
+      }
+      else {
+        this.height = '100vh';
+      }
+    },
     changeIntent: function() {
       this.$refs.tree.update();
     },
@@ -75,6 +97,9 @@ export default {
     upload: function(data) {
       this.$refs.tree.load(data);
     },
+    uploadSentence: function(data) {
+      this.$refs.sentence.load(data);
+    },
     download: function() {
       const data = this.$refs.tree.generate();
       const temp = document.createElement('a');
@@ -89,6 +114,12 @@ export default {
     },
     deleteNode: function() {
       this.$refs.tree.deleteNode(this.selectedNode);
+    },
+    mouseover: function(data, id) {
+      this.$refs.tree.mouseover(data, id);
+    },
+    mouseout: function() {
+      this.$refs.tree.mouseout();
     }
   }
 };
