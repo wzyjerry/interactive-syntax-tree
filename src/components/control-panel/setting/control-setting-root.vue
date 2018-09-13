@@ -38,9 +38,6 @@
                     prop="data.intent"
                     label="Intent" />
                   <el-table-column
-                    prop="data.dropout"
-                    label="Dropout" />
-                  <el-table-column
                     prop="data.weight"
                     label="Weight" />
                   <el-table-column
