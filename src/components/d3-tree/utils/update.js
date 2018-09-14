@@ -148,19 +148,26 @@ export default function (source) {
   const tipLinkEnter = tipLink.enter()
     .insert('path', 'g')
     .attr('class', 'tipLink')
-    .attr('d', 'M0,0A0,0 0 0,1 0,0');
+    .attr('d', function(d) {
+      const dx = d.target.x - d.source.x,
+        dy = d.target.y - d.source.y,
+        dr = Math.sqrt((dx * dx) + (dy * dy));
+      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.source.x},${d.source.y}`;
+    });
   tipLinkEnter.merge(tipLink)
-    .attr('d', d3.line()
-      .x(function (d) {
-        return d[1];
-      })
-      .y(function (d) {
-        return d[0];
-      })
-      .curve(d3.curveNatural))
-    .attr('marker-mid', 'url(#arrow)')
+    .transition()
+    .delay(function(d, i) {
+      return 1500 * i;
+    })
+    .duration(1500)
+    .attr('d',  function(d) {
+      const dx = d.target.x - d.source.x,
+        dy = d.target.y - d.source.y,
+        dr = Math.sqrt((dx * dx) + (dy * dy));
+      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+    })
     .attr('marker-end', 'url(#arrow)');
-  if (tipLinkEnter.node()) {
+  /*if (tipLinkEnter.node()) {
     const length = tipLinkEnter.node().getTotalLength();
     tipLinkEnter.style('stroke-dasharray', length)
       .style('stroke-dashoffset', length)
@@ -177,7 +184,7 @@ export default function (source) {
     style.type = 'text/css';
     style.innerHTML = rule;
     document.getElementsByTagName('head')[0].appendChild(style);
-  }
+  }*/
   /* 绘制边 */
   const link = svgGroup.selectAll('path.link')
     .data(links, function(d) {

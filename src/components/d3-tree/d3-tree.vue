@@ -28,7 +28,7 @@ import { default as click, clickCallBack, unclick } from './listener/click';
 import update from './utils/update';
 import expand from './utils/expand';
 import generateJSON from './utils/generateJSON';
-import { default as traceroute } from './utils/traceroute';
+import { default as traceroute, getLink } from './utils/traceroute';
 
 export default {
   name: 'D3Tree',
@@ -126,7 +126,7 @@ export default {
       click(parent);
     },
     sentenceClick: function(data, index) {
-      states.route = [traceroute(states.root, data, index)];
+      states.route = getLink(traceroute(states.root, data, index));
       update(this.route);
     }
   }
