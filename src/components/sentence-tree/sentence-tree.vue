@@ -38,12 +38,9 @@ export default {
       states.root.y0 = -(4 / 5 * states.baseSvg.node().clientHeight);
       update(states.root, this);
     },
-    mouseover: function(d) {
-      this.$emit('mouseover', states.data, d.data.index);
+    sentenceClick: function(d) {
+      this.$emit('sentenceClick', states.data, d.data.index);
     },
-    mouseout: function () {
-      // this.$emit('mouseout');
-    }
   }
 };
 </script>

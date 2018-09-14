@@ -39,8 +39,7 @@ export default function (source, vue) {
     .attr('class', function (d) {
       return `node ${d.data.type}`;
     })
-    .on('mouseover', vue.mouseover)
-    .on('mouseout', vue.mouseout);
+    .on('click', vue.sentenceClick);
   // 立即更新文字位置
   nodeUpdate.select('text')
     .text(function (d) {

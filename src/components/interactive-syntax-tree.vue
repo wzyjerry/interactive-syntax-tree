@@ -19,8 +19,7 @@
             ref="sentence"
             :height="'30vh'"
             :width="'100%'"
-            @mouseover="mouseover"
-            @mouseout="mouseout" />
+            @sentenceClick="sentenceClick" />
         </el-col>
         <!-- 右侧控制面板 -->
         <el-col
@@ -115,11 +114,8 @@ export default {
     deleteNode: function() {
       this.$refs.tree.deleteNode(this.selectedNode);
     },
-    mouseover: function(data, id) {
-      this.$refs.tree.mouseover(data, id);
-    },
-    mouseout: function() {
-      this.$refs.tree.mouseout();
+    sentenceClick: function(data, id) {
+      this.$refs.tree.sentenceClick(data, id);
     }
   }
 };

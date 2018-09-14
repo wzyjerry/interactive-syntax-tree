@@ -125,12 +125,8 @@ export default {
       }
       click(parent);
     },
-    mouseover: function(data, index) {
+    sentenceClick: function(data, index) {
       states.route = [traceroute(states.root, data, index)];
-      update(this.route);
-    },
-    mouseout: function() {
-      states.route = [];
       update(this.route);
     }
   }
