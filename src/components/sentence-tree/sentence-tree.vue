@@ -42,7 +42,7 @@ export default {
       this.$emit('mouseover', states.data, d.data.index);
     },
     mouseout: function () {
-      this.$emit('mouseout');
+      // this.$emit('mouseout');
     }
   }
 };

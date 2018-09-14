@@ -2,7 +2,23 @@
   <svg
     id="d3-tree-overlay"
     :width="width"
-    :height="height" />
+    :height="height">
+    <defs>
+      <marker
+        id="arrow"
+        markerUnits="strokeWidth"
+        markerWidth="5"
+        markerHeight="5"
+        viewBox="0 -5 10 10"
+        refX="16"
+        refY="0"
+        orient="auto">
+        <path
+          d="M0,-5 L10,0 L0,5"
+          style="fill: #000;" />
+      </marker>
+    </defs>
+  </svg>
 </template>
 <script>
 import * as d3 from 'd3';
@@ -12,7 +28,7 @@ import { default as click, clickCallBack, unclick } from './listener/click';
 import update from './utils/update';
 import expand from './utils/expand';
 import generateJSON from './utils/generateJSON';
-import { default as traceroute, getLink } from './utils/traceroute';
+import { default as traceroute } from './utils/traceroute';
 
 export default {
   name: 'D3Tree',
@@ -110,8 +126,7 @@ export default {
       click(parent);
     },
     mouseover: function(data, index) {
-      states.route = getLink(traceroute(states.root, data, index));
-      console.log(states.route);
+      states.route = [traceroute(states.root, data, index)];
       update(this.route);
     },
     mouseout: function() {

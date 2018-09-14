@@ -35,21 +35,6 @@ function updateHierachy(d, depth) {
 export default function (source) {
   let root = states.root;
   updateHierachy(root, 0);
-  const baseSvg = states.baseSvg;
-  baseSvg.append('svg:defs').selectAll('marker')
-    .data(['arrow'])
-    .enter()
-    .append('svg:marker')
-    .attr('id', String)
-    .attr('viewBox', '0 -5 10 10')
-    .attr('refX', 15)
-    .attr('refY', -1.5)
-    .attr('markerWidth', 6)
-    .attr('markerHeight', 6)
-    .attr('orient', 'auto')
-    .append('svg:path')
-    .attr('d', 'M0,-5L10,0L0,5');
-
   const svgGroup = states.svgGroup;
   const duration = states.duration;
   // 获取节点数组和边数组
@@ -165,14 +150,34 @@ export default function (source) {
     .attr('class', 'tipLink')
     .attr('d', 'M0,0A0,0 0 0,1 0,0');
   tipLinkEnter.merge(tipLink)
-    .attr('d',  function(d) {
-      const dx = d.target.x - d.source.x,
-        dy = d.target.y - d.source.y,
-        dr = Math.sqrt((dx * dx) + (dy * dy));
-      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-    })
+    .attr('d', d3.line()
+      .x(function (d) {
+        return d[1];
+      })
+      .y(function (d) {
+        return d[0];
+      })
+      .curve(d3.curveNatural))
+    .attr('marker-mid', 'url(#arrow)')
     .attr('marker-end', 'url(#arrow)');
-    
+  if (tipLinkEnter.node()) {
+    const length = tipLinkEnter.node().getTotalLength();
+    tipLinkEnter.style('stroke-dasharray', length)
+      .style('stroke-dashoffset', length)
+      .style('animation', `dash ${length / 200}s infinite`);
+    const rule = `@keyframes dash {
+      0% {
+        stroke-dashoffset: ${length};
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }`;
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = rule;
+    document.getElementsByTagName('head')[0].appendChild(style);
+  }
   /* 绘制边 */
   const link = svgGroup.selectAll('path.link')
     .data(links, function(d) {
