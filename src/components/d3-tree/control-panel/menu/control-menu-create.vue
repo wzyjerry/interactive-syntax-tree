@@ -37,22 +37,20 @@
                 :step="0.01"
                 show-input/>
             </el-form-item>
-          </el-collapse-item>
-          <!-- 存在节点类型：高级设置 -->
-          <el-collapse-item
-            v-if="newNode.type"
-            name="advanced"
-            title="Advanced Settings">
-            <!-- 控制节点：节点权重 -->
-            <el-form-item
-              v-if="newNode.type in {'order':1, 'pickone':2, 'exchangeable':3}"
-              label="Weight">
+            <!-- 节点权重 -->
+            <el-form-item label="Weight">
               <el-input-number
                 v-model="newNode.weight"
                 :precision="2"
                 :step="0.01"
                 :min="0"/>
             </el-form-item>
+          </el-collapse-item>
+          <!-- 存在节点类型：高级设置 -->
+          <el-collapse-item
+            v-if="newNode.type"
+            name="advanced"
+            title="Advanced Settings">
             <!-- 内容节点 -->
             <el-row v-if="newNode.type === 'content'">
               <!-- 来自文件 -->
