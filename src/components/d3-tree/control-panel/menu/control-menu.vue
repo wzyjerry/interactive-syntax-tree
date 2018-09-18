@@ -30,19 +30,18 @@
     <!-- Debug Mode -->
     <el-collapse-item
       name="debug"
-      title="Debug Mode(DEMO)">
+      title="Debug">
       <el-row
         type="flex"
         justify="end">
         <el-col :span="23">
           <el-form label-position="top">
-            <el-form-item label="Debug">
+            <el-form-item
+              v-show="!debug"
+              label="Debug Mode">
               <el-switch
                 v-model="debug"
                 @change="toggleDebug" />
-            </el-form-item>
-            <el-form-item label="Tree">
-              <control-menu-upload @upload="upload" />
             </el-form-item>
             <el-form-item label="Sentence">
               <control-menu-upload @upload="uploadSentence" />

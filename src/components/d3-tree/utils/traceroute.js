@@ -4,12 +4,12 @@ function getLink(nodes) {
     if (i > 0) {
       links.push({
         source: {
-          x: arr[i - 1][1],
-          y: arr[i - 1][0]
+          x: arr[i - 1][0],
+          y: arr[i - 1][1]
         },
         target: {
-          x: d[1],
-          y: d[0]
+          x: d[0],
+          y: d[1]
         }
       });
     }
