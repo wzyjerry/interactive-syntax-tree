@@ -7,7 +7,6 @@
 <script>
 import * as d3 from 'd3';
 import states from './states';
-import zoomListener from './listener/zoom';
 import update from './utils/update';
 
 export default {
@@ -25,21 +24,28 @@ export default {
   mounted: function() {
     states.baseSvg = d3.select('#sentence-tree-overlay');
     states.svgGroup = states.baseSvg.append('g');
-    states.baseSvg.call(zoomListener)
-      .on('dblclick.zoom', null);
     this.load(states.data);
   },
   methods: {
     load: function(data) {
       states.data = data;
-      states.root = d3.hierarchy(states.data);
-      // 设置根节点初始坐标
-      states.root.x0 = states.baseSvg.node().clientWidth / 2;
-      states.root.y0 = -(4 / 5 * states.baseSvg.node().clientHeight);
-      update(states.root, this);
+      if (data.children !== undefined) {
+        states.root = d3.hierarchy(states.data.children[0].children[0]);
+        // 设置根节点初始坐标
+        states.root.x0 = states.baseSvg.node().clientWidth / 2;
+        states.root.y0 = -(4 / 5 * states.baseSvg.node().clientHeight);
+        update(states.root, this);
+      }
     },
     sentenceClick: function(d) {
-      this.$emit('sentenceClick', states.data, d.data.index);
+      if (states.selectedNode === d.data.index) {
+        states.selectedNode = undefined;
+      }
+      else {
+        states.selectedNode = d.data.index;
+      }
+      this.$emit('sentenceClick', states.data, states.selectedNode);
+      update(states.root, this);
     },
   }
 };
@@ -51,4 +57,6 @@ export default {
 .node
   text.text
     text-anchor middle
+.link.selected
+  stroke red
 </style>
