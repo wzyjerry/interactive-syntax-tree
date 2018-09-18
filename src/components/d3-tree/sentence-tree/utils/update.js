@@ -20,7 +20,7 @@ export default function (source, vue) {
   /* 绘制节点 */
   const node = svgGroup.selectAll('g.node')
     .data(nodes, function (d) {
-      return parseInt(d.data.index, 10);
+      return d.data.index;
     });
   // Enter
   const nodeEnter = node.enter()
@@ -34,6 +34,13 @@ export default function (source, vue) {
   // 绘制初始文字
   nodeEnter.append('text')
     .style('fill-opacity', 0);
+  // 绘制intent
+  nodeEnter.filter(function (d) {
+    return d.parent === null;
+  }).append('text')
+    .text(`intent: ${states.data.children[0].intent}`)
+    .attr('dy', -20)
+    .attr('class', 'text');
   // Update
   let nodeUpdate = nodeEnter.merge(node)
     .attr('class', function (d) {
@@ -78,12 +85,11 @@ export default function (source, vue) {
   /* 绘制边 */
   const link = svgGroup.selectAll('path.link')
     .data(links, function (d) {
-      return d.target.id;
+      return d.target.data.index;
     });
   // Enter
   const linkEnter = link.enter()
     .insert('path', 'g')
-    .attr('class', 'link')
     .attr('d', function () {
       const pos = {
         'x': source.x0,
@@ -96,6 +102,13 @@ export default function (source, vue) {
     });
   // Update
   linkEnter.merge(link)
+    .attr('class', function (d) {
+      let flag = false;
+      d.source.ancestors().forEach(pa => {
+        flag |= pa.data.index === states.selectedNode;
+      });
+      return `link${flag ? ' selected' : ''}`;
+    })
     .transition()
     .duration(duration)
     .attr('d', linkGenerator);

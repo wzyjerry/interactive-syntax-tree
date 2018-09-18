@@ -1,26 +1,64 @@
 <template>
-  <svg
-    id="d3-tree-overlay"
-    :width="width"
-    :height="height">
-    <defs>
-      <marker
-        id="arrow"
-        markerUnits="strokeWidth"
-        markerWidth="5"
-        markerHeight="5"
-        viewBox="0 -5 10 10"
-        refX="16"
-        refY="0"
-        orient="auto">
-        <path
-          d="M0,-5 L10,0 L0,5"
-          style="fill: #000;" />
-      </marker>
-    </defs>
-  </svg>
+  <el-row :gutter="20">
+    <!-- 左侧树图 -->
+    <el-col
+      :xs="12"
+      :md="14"
+      :lg="16"
+      :xl="18">
+      <svg
+        id="d3-tree-overlay"
+        :width="width"
+        :height="height">
+        <defs>
+          <marker
+            id="arrow"
+            markerUnits="strokeWidth"
+            markerWidth="5"
+            markerHeight="5"
+            viewBox="0 0 10 10"
+            refX="17"
+            refY="4.5"
+            orient="auto">
+            <path
+              d="M0,0 L10,5 L0,10 L5,5"
+              style="fill: #000;" />
+          </marker>
+        </defs>
+      </svg>
+      <sentence-tree
+        v-if="debug"
+        ref="sentence"
+        :height="'30vh'"
+        :width="'100%'"
+        @sentenceClick="sentenceClick" />
+    </el-col>
+    <!-- 右侧控制面板 -->
+    <el-col
+      :xs="12"
+      :md="10"
+      :lg="8"
+      :xl="6">
+      <control-panel
+        ref="control"
+        :selected-node="selectedNode"
+        @toggleDebug="toggleDebug"
+        @changeIntent="update"
+        @appendIntent="appendIntent"
+        @unclick="unclick"
+        @createNode="create"
+        @upload="load"
+        @uploadSentence="uploadSentence"
+        @download="download"
+        @copyTree="copyTree"
+        @deleteNode="deleteNode" />
+    </el-col>
+  </el-row>
 </template>
 <script>
+import ControlPanel from './control-panel/control-panel';
+import SentenceTree from './sentence-tree/sentence-tree';
+
 import * as d3 from 'd3';
 import states from './states';
 import zoomListener from './listener/zoom';
@@ -32,20 +70,17 @@ import { default as traceroute, getLink } from './utils/traceroute';
 
 export default {
   name: 'D3Tree',
-  props: {
-    width: {
-      type: String,
-      default: '100%'
-    },
-    height: {
-      type: String,
-      default: '100vh'
-    }
+  components: {
+    ControlPanel: ControlPanel,
+    SentenceTree: SentenceTree
   },
   data: function() {
     return {
       selectedNode: undefined,
-      selectedData: undefined
+      selectedData: undefined,
+      height: '100vh',
+      width: '100%',
+      debug: false
     };
   },
   watch: {
@@ -54,7 +89,7 @@ export default {
       handler: function(val) {
         if (val !== undefined) {
           click(this.selectedNode);
-          this.$emit('showSetting');
+          this.$refs.control.showSetting();
         }
       }
     }
@@ -62,12 +97,32 @@ export default {
   mounted: function() {
     states.baseSvg = d3.select('#d3-tree-overlay');
     states.svgGroup = states.baseSvg.append('g');
-    states.baseSvg.call(zoomListener)
-      .on('dblclick.zoom', null);
+    states.baseSvg.call(zoomListener).on('dblclick.zoom', null);
     clickCallBack(this.onClick);
     this.load(states.root);
   },
   methods: {
+    toggleDebug: function(debug) {
+      this.debug = debug;
+      if (this.debug) {
+        this.height = '70vh';
+      }
+      else {
+        this.height = '100vh';
+      }
+    },
+    uploadSentence: function(data) {
+      this.$refs.sentence.load(data);
+    },
+    download: function() {
+      const data = generateJSON(states.root);
+      const temp = document.createElement('a');
+      temp.download = 'syntaxTree.json';
+      temp.href = URL.createObjectURL(new Blob([data]));
+      document.body.appendChild(temp);
+      temp.click();
+      document.body.removeChild(temp);
+    },
     update: function() {
       click(states.root);
     },
@@ -103,9 +158,6 @@ export default {
       states.root.x0 = 0;
       states.root.y0 = states.baseSvg.node().clientWidth / 2;
       click(states.root);
-    },
-    generate: function() {
-      return generateJSON(states.root);
     },
     unclick: function() {
       unclick();

@@ -43,12 +43,12 @@ export default function (source) {
   // 计算最大标签长度
   const labelLength = [];
   nodes.forEach(function(d) {
-    labelLength.push((d.data.name || d.data.type).length);
+    labelLength.push((d.data.name || d.data.intent || d.data.type).length);
   });
   const maxLabelLength = d3.max(labelLength);
   // 配置树布局产生器，节点高度根据最大标签长度计算，宽度固定为25像素
   const tree = d3.tree()
-    .nodeSize([25, maxLabelLength * 8]);
+    .nodeSize([25, maxLabelLength * 12]);
   // 布局
   root = tree(root);
   // 删除选中点
@@ -152,39 +152,22 @@ export default function (source) {
       const dx = d.target.x - d.source.x,
         dy = d.target.y - d.source.y,
         dr = Math.sqrt((dx * dx) + (dy * dy));
-      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.source.x},${d.source.y}`;
+      return `M${d.source.y},${d.source.x}A${dr},${dr} 0 0,1 ${d.source.y},${d.source.x}`;
     });
   tipLinkEnter.merge(tipLink)
     .transition()
     .delay(function(d, i) {
-      return 1500 * i;
+      return states.duration * i;
     })
-    .duration(1500)
-    .attr('d',  function(d) {
+    .duration(states.duration)
+    .attr('d', function(d) {
       const dx = d.target.x - d.source.x,
         dy = d.target.y - d.source.y,
         dr = Math.sqrt((dx * dx) + (dy * dy));
-      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      return `M${d.source.y},${d.source.x}A${dr},${dr} 0 0,1 ${d.target.y},${d.target.x}`;
     })
+    .transition()
     .attr('marker-end', 'url(#arrow)');
-  /*if (tipLinkEnter.node()) {
-    const length = tipLinkEnter.node().getTotalLength();
-    tipLinkEnter.style('stroke-dasharray', length)
-      .style('stroke-dashoffset', length)
-      .style('animation', `dash ${length / 200}s infinite`);
-    const rule = `@keyframes dash {
-      0% {
-        stroke-dashoffset: ${length};
-      }
-      100% {
-        stroke-dashoffset: 0;
-      }
-    }`;
-    const style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = rule;
-    document.getElementsByTagName('head')[0].appendChild(style);
-  }*/
   /* 绘制边 */
   const link = svgGroup.selectAll('path.link')
     .data(links, function(d) {
