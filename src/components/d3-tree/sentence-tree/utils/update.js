@@ -34,19 +34,19 @@ export default function (source, vue) {
   // 绘制初始文字
   nodeEnter.append('text')
     .style('fill-opacity', 0);
-  // 绘制intent
-  nodeEnter.filter(function (d) {
-    return d.parent === null;
-  }).append('text')
-    .text(`intent: ${states.data.children[0].intent}`)
-    .attr('dy', -20)
-    .attr('class', 'text');
   // Update
   let nodeUpdate = nodeEnter.merge(node)
     .attr('class', function (d) {
       return `node ${d.data.type}`;
     })
     .on('click', vue.sentenceClick);
+  // 绘制intent
+  nodeUpdate.filter(function (d) {
+    return d.parent === null;
+  }).append('text')
+    .text(`intent: ${states.data.children[0].intent}`)
+    .attr('dy', -20)
+    .attr('class', 'text');
   // 立即更新文字位置
   nodeUpdate.select('text')
     .text(function (d) {

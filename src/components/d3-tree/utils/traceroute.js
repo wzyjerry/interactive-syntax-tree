@@ -24,6 +24,9 @@ function traceroute(node, data, index, reach = false) {
   let route = [];
   if (reached) {
     route.push([node.x, node.y]);
+    if (data.text !== undefined) {
+      node.data.text = data.text;
+    }
   }
   if (data.children !== undefined) {
     data.children.forEach(function(d_c) {

@@ -178,6 +178,7 @@ export default {
       click(parent);
     },
     sentenceClick: function(data, index) {
+      states.debugRoot = index;
       states.route = getLink(traceroute(states.root, data, index));
       update(this.route);
     }

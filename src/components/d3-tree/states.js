@@ -3,6 +3,7 @@ export default {
   baseSvg: undefined,
   svgGroup: undefined,
   route: [],
+  debugRoot: undefined,
   root: {
     type: 'root',
     children: [{
