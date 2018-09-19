@@ -105,7 +105,11 @@ export default function (source) {
   // 立即更新文字位置
   nodeUpdate.select('text')
     .text(function(d) {
-      return d.data.name || d.data.intent || d.data.type;
+      let flag = false;
+      d.ancestors().forEach(pa => {
+        flag |= pa.data.index === states.debugRoot;
+      });
+      return `${d.data.name || d.data.intent || d.data.type}${flag && d.data.text ? `->${d.data.text}` : ''}`;
     })
     .attr('x', function(d) {
       return d.children || d._children ? -8 : 8;
