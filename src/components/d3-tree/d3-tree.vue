@@ -162,10 +162,12 @@ export default {
     unclick: function() {
       unclick();
     },
-    copyTree: function(d) {
+    copyTree: function() {
+      const d = this.selectedNode;
       this.create(JSON.parse(generateJSON(d)));
     },
-    deleteNode: function(d) {
+    deleteNode: function() {
+      const d = this.selectedNode;
       const parent = d.parent;
       expand(parent);
       const index = parent.children.indexOf(d);

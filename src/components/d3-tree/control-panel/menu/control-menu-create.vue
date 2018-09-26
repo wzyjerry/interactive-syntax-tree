@@ -74,7 +74,6 @@
               </el-form-item>
               <!-- 实体类型 -->
               <el-form-item
-                v-if="newNode.entity"
                 label="Entity">
                 <el-input
                   v-model="newNode.entity"
